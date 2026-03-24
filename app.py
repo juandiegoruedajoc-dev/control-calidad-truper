@@ -85,7 +85,9 @@ if st.button("🚀 EVALUAR MEDIDAS", type="primary", use_container_width=True):
         prom_diam = sum(diams) / len(diams)
         min_diam = min(diams)
         max_diam = max(diams)
-        ovalidad = max_diam - min_diam
+        
+        # Nueva lógica de ovalidad: mayor diferencia contra el promedio
+        ovalidad = max(abs(max_diam - prom_diam), abs(min_diam - prom_diam))
         
         if not (reglas["diam_min"] <= prom_diam <= reglas["diam_max"]):
             fallos.append(f"**Promedio de Diámetro** ({prom_diam:.3f} mm) fuera de rango ({reglas['diam_min']} a {reglas['diam_max']})")
@@ -98,6 +100,13 @@ if st.button("🚀 EVALUAR MEDIDAS", type="primary", use_container_width=True):
             if not (reglas["esp_min"] <= esp <= reglas["esp_max"]):
                 fallos.append(f"**Espesor {i+1}** ({esp:.2f} mm) fuera de rango ({reglas['esp_min']} a {reglas['esp_max']})")
                 
+        st.divider()
+        st.write("### 📝 Datos Calculados")
+        col_res1, col_res2, col_res3 = st.columns(3)
+        col_res1.metric("Diámetro Promedio", f"{prom_diam:.3f} mm")
+        col_res2.metric("Ovalidad Calculada", f"{ovalidad:.3f} mm")
+        col_res3.metric("Espesor Mínimo", f"{min(esps):.2f} mm")
+
         # Mostrar los cuadros GRANDE en base al resultado
         if fallos:
             st.error("<div class='big-title'>RECHAZADO</div>", icon="🚫")
