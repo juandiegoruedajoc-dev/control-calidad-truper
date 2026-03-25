@@ -55,17 +55,17 @@ col1, col2 = st.columns(2)
 
 with col1:
     st.markdown("#### Diámetros (mm)")
-    d1 = st.number_input("D1", value=0.00, format="%.2f", step=0.01)
-    d2 = st.number_input("D2", value=0.00, format="%.2f", step=0.01)
-    d3 = st.number_input("D3", value=0.00, format="%.2f", step=0.01)
-    d4 = st.number_input("D4", value=0.00, format="%.2f", step=0.01)
+    d1 = st.number_input("D1", value=None, format="%.2f", step=0.01)
+    d2 = st.number_input("D2", value=None, format="%.2f", step=0.01)
+    d3 = st.number_input("D3", value=None, format="%.2f", step=0.01)
+    d4 = st.number_input("D4", value=None, format="%.2f", step=0.01)
 
 with col2:
     st.markdown("#### Espesores (mm)")
-    e1 = st.number_input("E1", value=0.00, format="%.2f", step=0.01)
-    e2 = st.number_input("E2", value=0.00, format="%.2f", step=0.01)
-    e3 = st.number_input("E3", value=0.00, format="%.2f", step=0.01)
-    e4 = st.number_input("E4", value=0.00, format="%.2f", step=0.01)
+    e1 = st.number_input("E1", value=None, format="%.2f", step=0.01)
+    e2 = st.number_input("E2", value=None, format="%.2f", step=0.01)
+    e3 = st.number_input("E3", value=None, format="%.2f", step=0.01)
+    e4 = st.number_input("E4", value=None, format="%.2f", step=0.01)
 
 st.divider()
 
@@ -74,10 +74,9 @@ if st.button("🚀 EVALUAR MEDIDAS", type="primary", use_container_width=True):
     diams = [d1, d2, d3, d4]
     esps = [e1, e2, e3, e4]
     
-    # Validar que los campos no se hayan dejado en 0.0 cuando se esperan mediciones de CPVC
-    # Como en estos límites un tubo real no usaría 0.0, prevenimos evaluaciones vacías.
-    if all(d == 0.0 for d in diams) or all(e == 0.0 for e in esps):
-        st.warning("⚠️ Por favor ingresa los valores reales de medición. Parecen estar en 0.0")
+    # Validar que todos los campos han sido llenados
+    if any(x is None for x in diams) or any(x is None for x in esps):
+        st.warning("⚠️ Por favor ingresa todas las 8 mediciones antes de evaluar.")
     else:
         fallos = []
         
@@ -96,16 +95,21 @@ if st.button("🚀 EVALUAR MEDIDAS", type="primary", use_container_width=True):
             fallos.append(f"**Ovalidad** ({ovalidad:.3f} mm) excede el límite permitido ({reglas['oval_max']} mm)")
             
         # Cálculos de Espesor
+        prom_esp = sum(esps) / len(esps)
+        
+        if not (reglas["esp_min"] <= prom_esp <= reglas["esp_max"]):
+            fallos.append(f"**Promedio de Espesor** ({prom_esp:.2f} mm) fuera de rango ({reglas['esp_min']} a {reglas['esp_max']})")
+            
         for i, esp in enumerate(esps):
             if not (reglas["esp_min"] <= esp <= reglas["esp_max"]):
-                fallos.append(f"**Espesor {i+1}** ({esp:.2f} mm) fuera de rango ({reglas['esp_min']} a {reglas['esp_max']})")
+                fallos.append(f"**Espesor {i+1} individual** ({esp:.2f} mm) crítico fuera de rango ({reglas['esp_min']} a {reglas['esp_max']})")
                 
         st.divider()
         st.write("### 📝 Datos Calculados")
         col_res1, col_res2, col_res3 = st.columns(3)
         col_res1.metric("Diámetro Promedio", f"{prom_diam:.3f} mm")
         col_res2.metric("Ovalidad Calculada", f"{ovalidad:.3f} mm")
-        col_res3.metric("Espesor Mínimo", f"{min(esps):.2f} mm")
+        col_res3.metric("Espesor Promedio", f"{prom_esp:.2f} mm")
 
         # Mostrar los cuadros GRANDE en base al resultado
         if fallos:
