@@ -49,11 +49,11 @@ col1, col2 = st.columns(2)
 
 with col1:
     st.markdown(f"#### Diámetros (Norma: {reglas['diam_min']:.2f} - {reglas['diam_max']:.2f} mm)")
-    st.caption(f"Límite de Ovalidad: {reglas['oval_max']:.2f} mm")
     d1 = st.number_input("D1", value=None, format="%.2f", step=0.01, key="d1")
     d2 = st.number_input("D2", value=None, format="%.2f", step=0.01, key="d2")
     d3 = st.number_input("D3", value=None, format="%.2f", step=0.01, key="d3")
     d4 = st.number_input("D4", value=None, format="%.2f", step=0.01, key="d4")
+    st.caption(f"Límite de Ovalidad: {reglas['oval_max']:.2f} mm")
 
 with col2:
     st.markdown(f"#### Espesores (Mín: {reglas['esp_min']:.2f} mm)")
@@ -99,7 +99,7 @@ if evaluar_btn:
                 if not (reglas["diam_min"] <= prom_diam <= reglas["diam_max"]):
                     fallos.append(f"**Diámetro Promedio** ({prom_diam:.3f} mm) fuera de rango ({reglas['diam_min']} a {reglas['diam_max']})")
                 if ovalidad > reglas["oval_max"]:
-                    fallos.append(f"**Ovalidad** ({ovalidad:.3f} mm) excede límite ({reglas['oval_max']} mm)")
+                    fallos.append(f"**Ovalidad** ({ovalidad:.2f} mm) excede límite ({reglas['oval_max']:.2f} mm)")
                     
         # Evaluar Espesores (independiente)
         if len(esps_filled) > 0:
@@ -121,7 +121,7 @@ if evaluar_btn:
         cols = st.columns(3)
         if prom_diam is not None:
             cols[0].metric("Diámetro Promedio", f"{prom_diam:.3f} mm")
-            cols[1].metric("Ovalidad Calculada", f"{ovalidad:.3f} mm")
+            cols[1].metric("Ovalidad Calculada", f"{ovalidad:.2f} mm")
         if prom_esp is not None:
             cols[2].metric("Espesor Promedio", f"{prom_esp:.2f} mm")
 
