@@ -69,6 +69,12 @@ REFERENCE_DATA_PPR = {
     "Código 45446 (CV-006)": {"diam_min": 63.00, "diam_max": 63.60, "oval_max": 1.60, "esp_min": 8.60, "esp_max": 9.10},
 }
 
+# Datos de referencia para Tubo de Céspol
+REFERENCE_DATA_CESPOL = {
+    'Céspol 1-1/4"': {"diam_min": 32.00, "diam_max": 32.40, "oval_max": 0.50, "esp_min": 1.20, "esp_max": 1.60},
+    'Céspol 1-1/2"': {"diam_min": 37.20, "diam_max": 37.60, "oval_max": 0.50, "esp_min": 1.30, "esp_max": 1.70},
+}
+
 def limpiar_campos(tab_key):
     for key in ["d1", "d2", "d3", "d4", "e1", "e2", "e3", "e4"]:
         full_key = f"{key}_{tab_key}"
@@ -167,7 +173,7 @@ def render_tab(reglas, tab_key, validar_espesor_individual=True):
                 st.success("✨ ¡Excelente! Las mediciones evaluadas cumplen con la norma.")
 
 # --- Tab Layout ---
-tab_cpvc, tab_estante, tab_pvc, tab_pvc_rd, tab_ppr = st.tabs(["CPVC", "Tubo de Estante", "PVC Cédula 40", "PVC RD", "PPR"])
+tab_cpvc, tab_estante, tab_pvc, tab_pvc_rd, tab_ppr, tab_cespol = st.tabs(["CPVC", "Tubo de Estante", "PVC Cédula 40", "PVC RD", "PPR", "Tubo de Céspol"])
 
 with tab_cpvc:
     clave = st.selectbox("📌 Seleccione Clave:", list(REFERENCE_DATA_CPVC.keys()), key="sel_cpvc")
@@ -194,3 +200,8 @@ with tab_ppr:
     st.divider()
     # PPR no valida cada espesor individual
     render_tab(REFERENCE_DATA_PPR[clave_ppr], "ppr", validar_espesor_individual=False)
+
+with tab_cespol:
+    clave_cespol = st.selectbox("📌 Seleccione Clave:", list(REFERENCE_DATA_CESPOL.keys()), key="sel_cespol")
+    st.divider()
+    render_tab(REFERENCE_DATA_CESPOL[clave_cespol], "cespol")
