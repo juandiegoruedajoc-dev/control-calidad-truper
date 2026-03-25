@@ -49,6 +49,16 @@ REFERENCE_DATA_PVC = {
     "Código 45522 (PVC-006)": {"diam_min": 60.10, "diam_max": 60.50, "oval_max": 0.60, "esp_min": 3.60, "esp_max": 3.90},
 }
 
+# Datos de referencia para PVC RD
+REFERENCE_DATA_PVC_RD = {
+    "Código 40081 (PVC-101)": {"diam_min": 21.20, "diam_max": 21.40, "oval_max": 0.50, "esp_min": 0.80, "esp_max": 1.10},
+    "Código 40082 (PVC-102)": {"diam_min": 26.60, "diam_max": 26.80, "oval_max": 0.50, "esp_min": 1.20, "esp_max": 1.50},
+    "Código 40083 (PVC-103)": {"diam_min": 33.30, "diam_max": 33.50, "oval_max": 0.50, "esp_min": 1.20, "esp_max": 1.50},
+    "Código 40084 (PVC-104)": {"diam_min": 42.10, "diam_max": 42.30, "oval_max": 0.50, "esp_min": 1.30, "esp_max": 1.60},
+    "Código 40085 (PVC-105)": {"diam_min": 48.10, "diam_max": 48.50, "oval_max": 0.50, "esp_min": 1.60, "esp_max": 1.90},
+    "Código 40086 (PVC-106)": {"diam_min": 60.10, "diam_max": 60.50, "oval_max": 0.50, "esp_min": 2.00, "esp_max": 2.30},
+}
+
 def limpiar_campos(tab_key):
     for key in ["d1", "d2", "d3", "d4", "e1", "e2", "e3", "e4"]:
         full_key = f"{key}_{tab_key}"
@@ -146,7 +156,7 @@ def render_tab(reglas, tab_key):
                 st.success("✨ ¡Excelente! Las mediciones evaluadas cumplen con la norma.")
 
 # --- Tab Layout ---
-tab_cpvc, tab_estante, tab_pvc = st.tabs(["CPVC", "Tubo de Estante", "PVC Cédula 40"])
+tab_cpvc, tab_estante, tab_pvc, tab_pvc_rd = st.tabs(["CPVC", "Tubo de Estante", "PVC Cédula 40", "PVC RD"])
 
 with tab_cpvc:
     clave = st.selectbox("📌 Seleccione Clave:", list(REFERENCE_DATA_CPVC.keys()), key="sel_cpvc")
@@ -162,3 +172,8 @@ with tab_pvc:
     clave_pvc = st.selectbox("📌 Seleccione Clave:", list(REFERENCE_DATA_PVC.keys()), key="sel_pvc")
     st.divider()
     render_tab(REFERENCE_DATA_PVC[clave_pvc], "pvc")
+
+with tab_pvc_rd:
+    clave_pvc_rd = st.selectbox("📌 Seleccione Clave:", list(REFERENCE_DATA_PVC_RD.keys()), key="sel_pvc_rd")
+    st.divider()
+    render_tab(REFERENCE_DATA_PVC_RD[clave_pvc_rd], "pvc_rd")
