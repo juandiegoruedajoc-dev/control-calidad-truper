@@ -18,7 +18,12 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("Control de Calidad")
+col_img1, col_img2, col_img3 = st.columns([1, 2, 1])
+with col_img2:
+    st.image("https://raw.githubusercontent.com/juandiegoruedajoc-dev/control-calidad-truper/main/logotipo%20de%20truper.png", width=250)
+
+st.title("Sistema de Control de Calidad\nLaboratorio de Extrusión")
+st.subheader("Uso exclusivo para Laboratorio de Extrusión - Grupo Truper")
 
 # Datos de referencia para CPVC
 REFERENCE_DATA_CPVC = {
