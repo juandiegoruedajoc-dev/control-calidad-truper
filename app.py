@@ -2,10 +2,14 @@ import streamlit as st
 import pandas as pd
 
 # Configuración de la página
-st.set_page_config(page_title="Control de Calidad: Inspección", layout="centered", initial_sidebar_state="collapsed")
+st.set_page_config(page_title='Control de Calidad Truper', layout='wide', initial_sidebar_state='collapsed')
 
 st.markdown("""
     <style>
+    .stApp { background-color: #FFFFFF; }
+    .stMarkdown, p, h1, h2, h3, label { color: #000000 !important; }
+    div[data-testid='stMetricValue'] { color: #F0711B !important; }
+    button[kind="primary"] { background-color: #F0711B !important; border-color: #F0711B !important; color: white !important; }
     div[data-testid="stAlert"] {
         padding: 20px;
     }
@@ -15,15 +19,12 @@ st.markdown("""
         text-align: center;
         margin-bottom: 0px !important;
     }
-    [data-testid="stMetricValue"] {
-        color: #F0711B !important;
-    }
     </style>
 """, unsafe_allow_html=True)
 
 col_img1, col_img2, col_img3 = st.columns([1, 2, 1])
 with col_img2:
-    st.image("image_13.png", width=180)
+    st.image("https://raw.githubusercontent.com/juandiegoruedajoc-dev/control-calidad-truper/main/logotipo%20de%20truper.png", width=180)
 
 st.title("Sistema de Control de Calidad - Laboratorio de Extrusión")
 st.subheader("Uso exclusivo para Laboratorio de Extrusión - Grupo Truper")
