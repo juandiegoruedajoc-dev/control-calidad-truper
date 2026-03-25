@@ -59,13 +59,23 @@ REFERENCE_DATA_PVC_RD = {
     "Código 40086 (PVC-106)": {"diam_min": 60.10, "diam_max": 60.50, "oval_max": 0.50, "esp_min": 2.00, "esp_max": 2.30},
 }
 
+# Datos de referencia para PPR
+REFERENCE_DATA_PPR = {
+    "Código 49897 (CV-001)": {"diam_min": 20.00, "diam_max": 20.30, "oval_max": 1.20, "esp_min": 2.80, "esp_max": 3.10},
+    "Código 49898 (CV-002)": {"diam_min": 25.00, "diam_max": 25.30, "oval_max": 1.20, "esp_min": 3.50, "esp_max": 3.80},
+    "Código 49899 (CV-003)": {"diam_min": 32.00, "diam_max": 32.30, "oval_max": 1.30, "esp_min": 4.40, "esp_max": 4.70},
+    "Código 45444 (CV-004)": {"diam_min": 40.00, "diam_max": 40.40, "oval_max": 1.40, "esp_min": 5.50, "esp_max": 5.90},
+    "Código 45445 (CV-005)": {"diam_min": 50.00, "diam_max": 50.50, "oval_max": 1.40, "esp_min": 6.90, "esp_max": 7.40},
+    "Código 45446 (CV-006)": {"diam_min": 63.00, "diam_max": 63.60, "oval_max": 1.60, "esp_min": 8.60, "esp_max": 9.10},
+}
+
 def limpiar_campos(tab_key):
     for key in ["d1", "d2", "d3", "d4", "e1", "e2", "e3", "e4"]:
         full_key = f"{key}_{tab_key}"
         if full_key in st.session_state:
             st.session_state[full_key] = None
 
-def render_tab(reglas, tab_key):
+def render_tab(reglas, tab_key, validar_espesor_individual=True):
     col1, col2 = st.columns(2)
 
     with col1:
@@ -131,9 +141,10 @@ def render_tab(reglas, tab_key):
                     if not (reglas["esp_min"] <= prom_esp <= reglas["esp_max"]):
                         fallos.append(f"**Espesor Promedio** ({prom_esp:.2f} mm) fuera de rango ({reglas['esp_min']:.2f} a {reglas['esp_max']:.2f})")
                         
-                    for i, esp in enumerate(esps_filled):
-                        if not (reglas["esp_min"] <= esp <= reglas["esp_max"]):
-                            fallos.append(f"**Espesor {i+1} individual** ({esp:.2f} mm) crítico fuera de rango ({reglas['esp_min']:.2f} a {reglas['esp_max']:.2f})")
+                    if validar_espesor_individual:
+                        for i, esp in enumerate(esps_filled):
+                            if not (reglas["esp_min"] <= esp <= reglas["esp_max"]):
+                                fallos.append(f"**Espesor {i+1} individual** ({esp:.2f} mm) crítico fuera de rango ({reglas['esp_min']:.2f} a {reglas['esp_max']:.2f})")
                             
             st.divider()
             st.write("### 📝 Datos Calculados")
@@ -156,7 +167,7 @@ def render_tab(reglas, tab_key):
                 st.success("✨ ¡Excelente! Las mediciones evaluadas cumplen con la norma.")
 
 # --- Tab Layout ---
-tab_cpvc, tab_estante, tab_pvc, tab_pvc_rd = st.tabs(["CPVC", "Tubo de Estante", "PVC Cédula 40", "PVC RD"])
+tab_cpvc, tab_estante, tab_pvc, tab_pvc_rd, tab_ppr = st.tabs(["CPVC", "Tubo de Estante", "PVC Cédula 40", "PVC RD", "PPR"])
 
 with tab_cpvc:
     clave = st.selectbox("📌 Seleccione Clave:", list(REFERENCE_DATA_CPVC.keys()), key="sel_cpvc")
@@ -177,3 +188,9 @@ with tab_pvc_rd:
     clave_pvc_rd = st.selectbox("📌 Seleccione Clave:", list(REFERENCE_DATA_PVC_RD.keys()), key="sel_pvc_rd")
     st.divider()
     render_tab(REFERENCE_DATA_PVC_RD[clave_pvc_rd], "pvc_rd")
+
+with tab_ppr:
+    clave_ppr = st.selectbox("📌 Seleccione Clave:", list(REFERENCE_DATA_PPR.keys()), key="sel_ppr")
+    st.divider()
+    # PPR no valida cada espesor individual
+    render_tab(REFERENCE_DATA_PPR[clave_ppr], "ppr", validar_espesor_individual=False)
