@@ -56,7 +56,7 @@ with col1:
     st.caption(f"Límite de Ovalidad: {reglas['oval_max']:.2f} mm")
 
 with col2:
-    st.markdown(f"#### Espesores (Mín: {reglas['esp_min']:.2f} mm)")
+    st.markdown(f"#### Espesores (Norma: {reglas['esp_min']:.2f} - {reglas['esp_max']:.2f} mm)")
     e1 = st.number_input("E1", value=None, format="%.2f", step=0.01, key="e1")
     e2 = st.number_input("E2", value=None, format="%.2f", step=0.01, key="e2")
     e3 = st.number_input("E3", value=None, format="%.2f", step=0.01, key="e3")
@@ -120,7 +120,7 @@ if evaluar_btn:
         
         cols = st.columns(3)
         if prom_diam is not None:
-            cols[0].metric("Diámetro Promedio", f"{prom_diam:.3f} mm")
+            cols[0].metric("Diámetro Promedio", f"{prom_diam:.2f} mm")
             cols[1].metric("Ovalidad Calculada", f"{ovalidad:.2f} mm")
         if prom_esp is not None:
             cols[2].metric("Espesor Promedio", f"{prom_esp:.2f} mm")
