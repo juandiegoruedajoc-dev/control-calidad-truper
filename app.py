@@ -20,15 +20,17 @@ st.markdown("""
 
 st.title("Control de Calidad")
 
-# Reglas fijas por pestaña
-REGLAS_CPVC = {
-    "diam_min": 28.52, 
-    "diam_max": 28.68, 
-    "oval_max": 0.30, 
-    "esp_min": 2.12, 
-    "esp_max": 2.38
+# Datos de referencia para CPVC
+REFERENCE_DATA_CPVC = {
+    "CPVC-001": {"diam_min": 15.82, "diam_max": 15.98, "oval_max": 0.20, "esp_min": 1.40, "esp_max": 1.66},
+    "CPVC-002": {"diam_min": 22.12, "diam_max": 22.28, "oval_max": 0.26, "esp_min": 1.65, "esp_max": 1.91},
+    "CPVC-003": {"diam_min": 28.52, "diam_max": 28.68, "oval_max": 0.30, "esp_min": 2.12, "esp_max": 2.38},
+    "CPVC-004": {"diam_min": 34.82, "diam_max": 34.98, "oval_max": 0.36, "esp_min": 3.18, "esp_max": 3.31},
+    "CPVC-005": {"diam_min": 41.20, "diam_max": 41.40, "oval_max": 0.40, "esp_min": 3.76, "esp_max": 3.89},
+    "CPVC-006": {"diam_min": 53.90, "diam_max": 54.10, "oval_max": 0.46, "esp_min": 4.90, "esp_max": 5.05},
 }
 
+# Datos fijos para Tubo de Estante
 REGLAS_TUBO = {
     "diam_min": 40.70, 
     "diam_max": 41.10, 
@@ -84,7 +86,7 @@ def render_tab(reglas, tab_key):
             ovalidad = None
             prom_esp = None
             
-            # Evaluar Diámetros (independiente)
+            # Evaluar Diámetros
             if len(diams_filled) > 0:
                 if len(diams_filled) < 4:
                     fallos.append("⚠️ Faltan datos de Diámetro para realizar la evaluación de diámetros.")
@@ -99,7 +101,7 @@ def render_tab(reglas, tab_key):
                     if ovalidad > reglas["oval_max"]:
                         fallos.append(f"**Ovalidad** ({ovalidad:.2f} mm) excede límite ({reglas['oval_max']:.2f} mm)")
                         
-            # Evaluar Espesores (independiente)
+            # Evaluar Espesores
             if len(esps_filled) > 0:
                 if len(esps_filled) < 4:
                     fallos.append("⚠️ Faltan datos de Espesor para realizar la evaluación de espesores.")
@@ -137,7 +139,11 @@ def render_tab(reglas, tab_key):
 tab_cpvc, tab_estante = st.tabs(["CPVC", "Tubo de Estante"])
 
 with tab_cpvc:
-    render_tab(REGLAS_CPVC, "cpvc")
+    clave = st.selectbox("📌 Seleccione Clave:", list(REFERENCE_DATA_CPVC.keys()))
+    st.divider()
+    render_tab(REFERENCE_DATA_CPVC[clave], "cpvc")
 
 with tab_estante:
+    st.markdown("#### 📌 Especificaciones Fijas: Tubo de Estante")
+    st.divider()
     render_tab(REGLAS_TUBO, "tubo")
