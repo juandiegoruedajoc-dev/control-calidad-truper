@@ -70,17 +70,22 @@ st.markdown("""
     div[data-testid="stToggle"] [data-baseweb="checkbox"] > div:first-child[data-checked="true"] { 
         background-color: #F0711B !important; 
     }
-    /* Mantener sub-columnas en una línea en móviles */
-    @media (max-width: 500px) {
-        div[data-testid="column"] div[data-testid="stHorizontalBlock"] {
-            flex-direction: row !important;
+    /* Mantener sub-columnas en una línea estricta */
+    @media (max-width: 768px) {
+        div[data-testid='column'] div[data-testid='column'] {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            min-width: 0px !important;
+            padding: 0px 2px !important;
+        }
+        div[data-testid='column'] div[data-testid='stHorizontalBlock'] {
             flex-wrap: nowrap !important;
-            align-items: center !important;
             gap: 2px !important;
         }
-        div[data-testid="column"] div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
-            min-width: 0 !important;
-            padding: 0 !important;
+        input[type="number"] {
+            padding: 5px !important;
+            font-size: 18px !important;
         }
     }
     </style>
@@ -177,12 +182,12 @@ def render_tab(reglas, tab_key, validar_espesor_individual=True):
         valor_final_retorno = None
         
         if not modo_manual:
-            ci_1, ci_2, ci_3, ci_4 = st.columns([1, 0.7, 2.5, 0.8], vertical_alignment="center")
+            ci_1, ci_2, ci_3, ci_4 = st.columns([1, 1, 3, 1], vertical_alignment="center")
             
             with ci_1:
-                st.markdown(f"<div style='font-size: 1.2rem; font-weight: bold;'>{label}</div>", unsafe_allow_html=True)
+                st.markdown(f"<span style='font-size: 1.1rem; font-weight: bold;'>{label}</span>", unsafe_allow_html=True)
             with ci_2:
-                st.markdown(f"<div style='font-size: 1.5rem; font-weight: bold; color: #555; text-align: right; user-select: none;'>{base}.</div>", unsafe_allow_html=True)
+                st.markdown(f"<span style='font-size: 1.3rem; font-weight: bold; color: #555; text-align: right; display: block;'>{base}.</span>", unsafe_allow_html=True)
             with ci_3:
                 val = st.number_input(label, value=None, format="%d", step=1, label_visibility="collapsed", key=f"int_{key_suffix}_{tab_key}")
             with ci_4:
@@ -192,10 +197,10 @@ def render_tab(reglas, tab_key, validar_espesor_individual=True):
                 valor_final_retorno = base + (val / 100)
                 
         else:
-            ci_1, ci_3, ci_4 = st.columns([1, 3.2, 0.8], vertical_alignment="center")
+            ci_1, ci_3, ci_4 = st.columns([1, 4, 1], vertical_alignment="center")
             
             with ci_1:
-                st.markdown(f"<div style='font-size: 1.2rem; font-weight: bold; color: #F0711B;'>{label}</div>", unsafe_allow_html=True)
+                st.markdown(f"<span style='font-size: 1.1rem; font-weight: bold; color: #F0711B;'>{label}</span>", unsafe_allow_html=True)
             with ci_3:
                 val = st.number_input(label, value=None, format="%.2f", step=0.01, label_visibility="collapsed", key=f"man_{key_suffix}_{tab_key}")
             with ci_4:
