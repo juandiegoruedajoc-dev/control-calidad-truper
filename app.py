@@ -70,22 +70,29 @@ st.markdown("""
     div[data-testid="stToggle"] [data-baseweb="checkbox"] > div:first-child[data-checked="true"] { 
         background-color: #F0711B !important; 
     }
-    /* Mantener sub-columnas en una línea estricta */
-    @media (max-width: 768px) {
-        div[data-testid='column'] div[data-testid='column'] {
-            display: flex;
-            align-items: center;
-            justify-content: flex-start;
-            min-width: 0px !important;
-            padding: 0px 2px !important;
-        }
-        div[data-testid='column'] div[data-testid='stHorizontalBlock'] {
-            flex-wrap: nowrap !important;
-            gap: 2px !important;
-        }
-        input[type="number"] {
-            padding: 5px !important;
-            font-size: 18px !important;
+    /* Fix Estricto para el Marcador Fantasma en inputs numéricos */
+    .strict-row-wrapper + div[data-testid="stHorizontalBlock"] {
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+        gap: 0px !important;
+    }
+    .strict-row-wrapper + div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
+        min-width: 0 !important;
+        padding: 0 !important;
+    }
+    /* El input numérico será acortado forzosamente */
+    .strict-row-wrapper + div[data-testid="stHorizontalBlock"] div[data-testid="stNumberInput"] {
+        width: 100% !important;
+        max-width: 85px !important;
+        min-width: 60px !important;
+    }
+    .strict-row-wrapper + div[data-testid="stHorizontalBlock"] input[type="number"] {
+        padding: 0px 5px !important;
+        font-size: 18px !important;
+    }
+    @media (max-width: 500px) {
+        .strict-row-wrapper + div[data-testid="stHorizontalBlock"] {
+            gap: 2px !important; /* aire extra microscópico en teléfono para tap margin */
         }
     }
     </style>
@@ -181,8 +188,11 @@ def render_tab(reglas, tab_key, validar_espesor_individual=True):
         
         valor_final_retorno = None
         
+        # MARCADOR FANTASMA INVISIBLE: Dicta al CSS que no fracture el bloque inferior
+        st.markdown('<div class="strict-row-wrapper" style="margin:0; padding:0; height:0;"></div>', unsafe_allow_html=True)
+        
         if not modo_manual:
-            ci_1, ci_2, ci_3, ci_4 = st.columns([1, 1, 3, 1], vertical_alignment="center")
+            ci_1, ci_2, ci_3, ci_4 = st.columns([1, 1, 2.5, 1], vertical_alignment="center")
             
             with ci_1:
                 st.markdown(f"<span style='font-size: 1.1rem; font-weight: bold;'>{label}</span>", unsafe_allow_html=True)
@@ -197,7 +207,7 @@ def render_tab(reglas, tab_key, validar_espesor_individual=True):
                 valor_final_retorno = base + (val / 100)
                 
         else:
-            ci_1, ci_3, ci_4 = st.columns([1, 4, 1], vertical_alignment="center")
+            ci_1, ci_3, ci_4 = st.columns([1, 3.5, 1], vertical_alignment="center")
             
             with ci_1:
                 st.markdown(f"<span style='font-size: 1.1rem; font-weight: bold; color: #F0711B;'>{label}</span>", unsafe_allow_html=True)
