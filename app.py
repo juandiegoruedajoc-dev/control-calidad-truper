@@ -172,26 +172,32 @@ def render_tab(reglas, tab_key, validar_espesor_individual=True):
     col1, col2 = st.columns(2)
 
     def create_input(label, key_suffix, base):
-        # Componente que siempre opera con modo decimal por defecto, excepto si Toggle 'Manual' está prendido
-        ci_1, ci_2 = st.columns([3, 1], vertical_alignment="center")
+        # Layout de 3 subcolumnas: Input, Resultado y Toggle
+        ci_1, ci_2, ci_3 = st.columns([1.5, 1.2, 1], vertical_alignment="center")
+        
         with ci_1:
             val = st.number_input(label, value=None, format="%.2f", step=0.01, key=f"{key_suffix}_{tab_key}")
-        with ci_2:
+            
+        with ci_3:
             st.markdown("<div style='margin-top: 35px;'></div>", unsafe_allow_html=True)
             modo_manual = st.toggle("Manual", key=f"chk_entero_{key_suffix}_{tab_key}")
             
-        if val is not None:
-            if not modo_manual:
-                valor_final = base + (val / 100)
-                # Mostrar el valor final debajodel input
-                with ci_1:
-                    st.markdown(f"<span style='color: #2e7d32; font-weight: bold; font-size: 0.9em; margin-top: -10px; display: block;'>↳ {valor_final:.2f} mm</span>", unsafe_allow_html=True)
-                return valor_final
+        valor_final_retorno = None
+        
+        with ci_2:
+            st.markdown("<div style='margin-top: 35px;'></div>", unsafe_allow_html=True)
+            if val is not None:
+                if not modo_manual:
+                    valor_final = base + (val / 100)
+                    st.markdown(f"<div style='font-size: 1.6rem; font-weight: 900; color: #F0711B; white-space: nowrap; text-align: center;'>= {valor_final:.2f}</div>", unsafe_allow_html=True)
+                    valor_final_retorno = valor_final
+                else:
+                    st.markdown(f"<div style='font-size: 1.6rem; font-weight: 900; color: #e65100; white-space: nowrap; text-align: center;'>= {val:.2f}</div>", unsafe_allow_html=True)
+                    valor_final_retorno = val
             else:
-                with ci_1:
-                    st.markdown(f"<span style='color: #e65100; font-weight: bold; font-size: 0.9em; margin-top: -10px; display: block;'>↳ {val:.2f} mm (Manual)</span>", unsafe_allow_html=True)
-                return val
-        return None
+                st.markdown("<div style='font-size: 1.6rem; font-weight: bold; color: #CCC; text-align: center;'>—</div>", unsafe_allow_html=True)
+                
+        return valor_final_retorno
 
     with col1:
         st.markdown(f"#### Diámetros (Norma: {reglas['diam_min']:.2f} - {reglas['diam_max']:.2f} mm)")
