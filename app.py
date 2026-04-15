@@ -18,9 +18,18 @@ if "scroll_to_top" in st.session_state and st.session_state.scroll_to_top:
 
 st.markdown("""
     <style>
+    /* Full Width Native y anulación de márgenes Streamlit */
+    .block-container {
+        padding-top: 1rem !important;
+        padding-left: 0.5rem !important;
+        padding-right: 0.5rem !important;
+        max-width: 100% !important;
+    }
+    header {visibility: hidden;}
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    
     .stApp { background-color: #FFFFFF; }
-    .stMarkdown, p, h1, h2, h3, label { color: #000000 !important; }
-    div[data-testid='stMetricValue'] { color: #F0711B !important; }
     button[kind="primary"] { background-color: #F0711B !important; border-color: #F0711B !important; color: white !important; }
     div[data-testid="stAlert"] {
         padding: 20px;
@@ -83,10 +92,10 @@ st.markdown("""
         white-space: nowrap !important;
     }
     .stNumberInput {
-        max-width: 60px !important;
+        max-width: 80px !important;
     }
     .stNumberInput input { 
-        font-size: 20px !important; 
+        font-size: 16px !important; 
         padding: 5px !important; 
     }
     </style>
@@ -183,13 +192,10 @@ def render_tab(reglas, tab_key, validar_espesor_individual=True):
         valor_final_retorno = None
         
         if not modo_manual:
-            # Compactación extrema (D1 separado de 15.)
-            ci_1, ci_2, ci_3, ci_4 = st.columns([0.5, 0.5, 2, 1], vertical_alignment="center")
+            ci_1, ci_3, ci_4 = st.columns([1.5, 1.5, 0.8], vertical_alignment="center")
             
             with ci_1:
-                st.markdown(f"<span style='font-weight: bold; font-size: 1.1rem;'>{label}</span>", unsafe_allow_html=True)
-            with ci_2:
-                st.markdown(f"<span style='font-size: 1.4rem; font-weight: 900; color: #000;'>{base}.</span>", unsafe_allow_html=True)
+                st.markdown(f"<span style='font-size: 1.1rem; font-weight: bold;'>{label} <span style='font-size: 1.4rem; font-weight: 900; color: #000;'>{base}.</span></span>", unsafe_allow_html=True)
             with ci_3:
                 val = st.number_input(label, value=None, format="%d", step=1, label_visibility="collapsed", key=f"int_{key_suffix}_{tab_key}")
             with ci_4:
@@ -199,8 +205,7 @@ def render_tab(reglas, tab_key, validar_espesor_individual=True):
                 valor_final_retorno = base + (val / 100)
                 
         else:
-            # Vista Manual Abierta
-            ci_1, ci_3, ci_4 = st.columns([0.5, 2.5, 1], vertical_alignment="center")
+            ci_1, ci_3, ci_4 = st.columns([1, 2.5, 0.8], vertical_alignment="center")
             
             with ci_1:
                 st.markdown(f"<span style='font-size: 1.1rem; font-weight: bold; color: #F0711B;'>{label}</span>", unsafe_allow_html=True)
@@ -233,11 +238,8 @@ def render_tab(reglas, tab_key, validar_espesor_individual=True):
 
     st.divider()
 
-    col_btn1, col_btn2 = st.columns([3, 1])
-    with col_btn1:
-        evaluar_btn = st.button("🚀 EVALUAR MEDIDAS", type="primary", use_container_width=True, key=f"btn_eval_{tab_key}")
-    with col_btn2:
-        st.button("🧹 Limpiar Todo", on_click=limpiar_campos, args=(tab_key,), use_container_width=True, key=f"btn_clean_{tab_key}")
+    evaluar_btn = st.button("🚀 EVALUAR MEDIDAS", type="primary", use_container_width=True, key=f"btn_eval_{tab_key}")
+    st.button("🧹 Limpiar Todo", on_click=limpiar_campos, args=(tab_key,), use_container_width=True, key=f"btn_clean_{tab_key}")
 
     if evaluar_btn:
         diams_raw = [d1, d2, d3, d4]
