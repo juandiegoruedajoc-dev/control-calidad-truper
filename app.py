@@ -76,12 +76,11 @@ st.markdown("""
             flex-direction: row !important;
             flex-wrap: nowrap !important;
             align-items: center !important;
+            gap: 2px !important;
         }
         div[data-testid="column"] div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
             min-width: 0 !important;
-            width: auto !important;
-            flex: 1 !important;
-            padding: 0 5px !important;
+            padding: 0 !important;
         }
     }
     </style>
@@ -172,36 +171,43 @@ def render_tab(reglas, tab_key, validar_espesor_individual=True):
     col1, col2 = st.columns(2)
 
     def create_input(label, key_suffix, base):
-        # Layout de 3 subcolumnas: Input, Resultado y Toggle
-        ci_1, ci_2, ci_3 = st.columns([1.5, 1.2, 1], vertical_alignment="center")
+        toggle_key = f"chk_entero_{key_suffix}_{tab_key}"
+        modo_manual = st.session_state.get(toggle_key, False)
         
-        with ci_1:
-            val = st.number_input(label, value=None, format="%.2f", step=0.01, key=f"{key_suffix}_{tab_key}")
-            
-        with ci_3:
-            st.markdown("<div style='margin-top: 35px;'></div>", unsafe_allow_html=True)
-            modo_manual = st.toggle("Manual", key=f"chk_entero_{key_suffix}_{tab_key}")
-            
         valor_final_retorno = None
         
-        with ci_2:
-            st.markdown("<div style='margin-top: 35px;'></div>", unsafe_allow_html=True)
+        if not modo_manual:
+            ci_1, ci_2, ci_3, ci_4 = st.columns([1, 0.7, 2.5, 0.8], vertical_alignment="center")
+            
+            with ci_1:
+                st.markdown(f"<div style='font-size: 1.2rem; font-weight: bold;'>{label}</div>", unsafe_allow_html=True)
+            with ci_2:
+                st.markdown(f"<div style='font-size: 1.5rem; font-weight: bold; color: #555; text-align: right; user-select: none;'>{base}.</div>", unsafe_allow_html=True)
+            with ci_3:
+                val = st.number_input(label, value=None, format="%d", step=1, label_visibility="collapsed", key=f"int_{key_suffix}_{tab_key}")
+            with ci_4:
+                st.toggle("Man", key=toggle_key)
+                
             if val is not None:
-                if not modo_manual:
-                    valor_final = base + (val / 100)
-                    st.markdown(f"<div style='font-size: 1.6rem; font-weight: 900; color: #F0711B; white-space: nowrap; text-align: center;'>= {valor_final:.2f}</div>", unsafe_allow_html=True)
-                    valor_final_retorno = valor_final
-                else:
-                    st.markdown(f"<div style='font-size: 1.6rem; font-weight: 900; color: #e65100; white-space: nowrap; text-align: center;'>= {val:.2f}</div>", unsafe_allow_html=True)
-                    valor_final_retorno = val
-            else:
-                st.markdown("<div style='font-size: 1.6rem; font-weight: bold; color: #CCC; text-align: center;'>—</div>", unsafe_allow_html=True)
+                valor_final_retorno = base + (val / 100)
+                
+        else:
+            ci_1, ci_3, ci_4 = st.columns([1, 3.2, 0.8], vertical_alignment="center")
+            
+            with ci_1:
+                st.markdown(f"<div style='font-size: 1.2rem; font-weight: bold; color: #F0711B;'>{label}</div>", unsafe_allow_html=True)
+            with ci_3:
+                val = st.number_input(label, value=None, format="%.2f", step=0.01, label_visibility="collapsed", key=f"man_{key_suffix}_{tab_key}")
+            with ci_4:
+                st.toggle("Man", key=toggle_key)
+                
+            if val is not None:
+                valor_final_retorno = val
                 
         return valor_final_retorno
 
     with col1:
         st.markdown(f"#### Diámetros (Norma: {reglas['diam_min']:.2f} - {reglas['diam_max']:.2f} mm)")
-        st.caption(f"ℹ️ Base de cálculo automático: **{base_diam}**")
             
         d1 = create_input("D1", "d1", base_diam)
         d2 = create_input("D2", "d2", base_diam)
@@ -211,7 +217,6 @@ def render_tab(reglas, tab_key, validar_espesor_individual=True):
 
     with col2:
         st.markdown(f"#### Espesores (Norma: {reglas['esp_min']:.2f} - {reglas['esp_max']:.2f} mm)")
-        st.caption(f"ℹ️ Base de cálculo automático: **{base_esp}**")
             
         e1 = create_input("E1", "e1", base_esp)
         e2 = create_input("E2", "e2", base_esp)
