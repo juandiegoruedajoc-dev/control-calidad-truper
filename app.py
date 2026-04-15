@@ -59,6 +59,31 @@ st.markdown("""
         font-weight: 900;
         color: #F0711B;
     }
+    /* Estilos para Toggles activos */
+    div[data-testid="stToggle"] > label > div[data-checked="true"] > div {
+        background-color: #F0711B !important;
+    }
+    div[data-testid="stToggle"] label[data-checked="true"] div[data-baseweb="checkbox"] > div {
+        background-color: #F0711B !important;
+    }
+    /* El selector oficial suele ser la div que funciona como track */
+    div[data-testid="stToggle"] [data-baseweb="checkbox"] > div:first-child[data-checked="true"] { 
+        background-color: #F0711B !important; 
+    }
+    /* Mantener sub-columnas en una línea en móviles */
+    @media (max-width: 500px) {
+        div[data-testid="column"] div[data-testid="stHorizontalBlock"] {
+            flex-direction: row !important;
+            flex-wrap: nowrap !important;
+            align-items: center !important;
+        }
+        div[data-testid="column"] div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
+            min-width: 0 !important;
+            width: auto !important;
+            flex: 1 !important;
+            padding: 0 5px !important;
+        }
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -132,10 +157,6 @@ def limpiar_campos(tab_key):
         chk_key = f"chk_entero_{key}_{tab_key}"
         if chk_key in st.session_state:
             st.session_state[chk_key] = False
-    
-    decimal_key = f"decimal_{tab_key}"
-    if decimal_key in st.session_state:
-        st.session_state[decimal_key] = False
         
     st.session_state.scroll_to_top = True
 
@@ -145,39 +166,36 @@ def limpiar_rafia():
     st.session_state.scroll_to_top = True
 
 def render_tab(reglas, tab_key, validar_espesor_individual=True):
-    col_dec1, col_dec2 = st.columns([1, 1])
-    with col_dec1:
-        modo_decimal = st.toggle("Activar Modo Decimal (Suma automática a base)", value=False, key=f"decimal_{tab_key}")
-        
     base_diam = int(reglas['diam_min'])
     base_esp = int(reglas['esp_min'])
     
     col1, col2 = st.columns(2)
 
     def create_input(label, key_suffix, base):
-        val = None
-        usar_entero = False
-        if modo_decimal:
-            ci_1, ci_2 = st.columns([3, 1])
-            with ci_1:
-                val = st.number_input(label, value=None, format="%.2f", step=0.01, key=f"{key_suffix}_{tab_key}")
-            with ci_2:
-                st.markdown("<div style='margin-top: 35px;'></div>", unsafe_allow_html=True)
-                usar_entero = st.checkbox("Entero", key=f"chk_entero_{key_suffix}_{tab_key}", help="Usar valor literal ingresado para esta fila")
-        else:
+        # Componente que siempre opera con modo decimal por defecto, excepto si Toggle 'Manual' está prendido
+        ci_1, ci_2 = st.columns([3, 1], vertical_alignment="center")
+        with ci_1:
             val = st.number_input(label, value=None, format="%.2f", step=0.01, key=f"{key_suffix}_{tab_key}")
+        with ci_2:
+            st.markdown("<div style='margin-top: 35px;'></div>", unsafe_allow_html=True)
+            modo_manual = st.toggle("Manual", key=f"chk_entero_{key_suffix}_{tab_key}")
             
         if val is not None:
-            if modo_decimal and not usar_entero:
-                return base + (val / 100)
+            if not modo_manual:
+                valor_final = base + (val / 100)
+                # Mostrar el valor final debajodel input
+                with ci_1:
+                    st.markdown(f"<span style='color: #2e7d32; font-weight: bold; font-size: 0.9em; margin-top: -10px; display: block;'>↳ {valor_final:.2f} mm</span>", unsafe_allow_html=True)
+                return valor_final
             else:
+                with ci_1:
+                    st.markdown(f"<span style='color: #e65100; font-weight: bold; font-size: 0.9em; margin-top: -10px; display: block;'>↳ {val:.2f} mm (Manual)</span>", unsafe_allow_html=True)
                 return val
         return None
 
     with col1:
         st.markdown(f"#### Diámetros (Norma: {reglas['diam_min']:.2f} - {reglas['diam_max']:.2f} mm)")
-        if modo_decimal:
-            st.caption(f"ℹ️ Base asumida: **{base_diam}**")
+        st.caption(f"ℹ️ Base de cálculo automático: **{base_diam}**")
             
         d1 = create_input("D1", "d1", base_diam)
         d2 = create_input("D2", "d2", base_diam)
@@ -187,8 +205,7 @@ def render_tab(reglas, tab_key, validar_espesor_individual=True):
 
     with col2:
         st.markdown(f"#### Espesores (Norma: {reglas['esp_min']:.2f} - {reglas['esp_max']:.2f} mm)")
-        if modo_decimal:
-            st.caption(f"ℹ️ Base asumida: **{base_esp}**")
+        st.caption(f"ℹ️ Base de cálculo automático: **{base_esp}**")
             
         e1 = create_input("E1", "e1", base_esp)
         e2 = create_input("E2", "e2", base_esp)
