@@ -1,8 +1,20 @@
 import streamlit as st
 import pandas as pd
+import streamlit.components.v1 as components
 
 # Configuración de la página
 st.set_page_config(page_title='Control de Calidad Truper', layout='wide', initial_sidebar_state='collapsed')
+
+if "scroll_to_top" in st.session_state and st.session_state.scroll_to_top:
+    components.html(
+        """
+        <script>
+            window.parent.scrollTo(0,0);
+            window.parent.document.querySelector('.main').scrollTo(0,0);
+        </script>
+        """, height=0
+    )
+    st.session_state.scroll_to_top = False
 
 st.markdown("""
     <style>
@@ -18,6 +30,34 @@ st.markdown("""
         font-weight: 800 !important;
         text-align: center;
         margin-bottom: 0px !important;
+    }
+    /* Estilos nuevos para inputs y modo Rafia */
+    div[data-baseweb="input"] > div {
+        min-height: 60px !important;
+        font-size: 1.2rem !important;
+    }
+    input[type="number"] {
+        font-size: 1.2rem !important;
+        height: 100% !important;
+    }
+    .rafia-card {
+        background-color: #f9f9f9;
+        border: 2px solid #F0711B;
+        border-radius: 10px;
+        padding: 30px;
+        text-align: center;
+        margin-top: 15px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    .rafia-title {
+        font-size: 1.6rem;
+        color: #555;
+        margin-bottom: 15px;
+    }
+    .rafia-value {
+        font-size: 3rem;
+        font-weight: 900;
+        color: #F0711B;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -89,24 +129,71 @@ def limpiar_campos(tab_key):
         full_key = f"{key}_{tab_key}"
         if full_key in st.session_state:
             st.session_state[full_key] = None
+        chk_key = f"chk_entero_{key}_{tab_key}"
+        if chk_key in st.session_state:
+            st.session_state[chk_key] = False
+    
+    decimal_key = f"decimal_{tab_key}"
+    if decimal_key in st.session_state:
+        st.session_state[decimal_key] = False
+        
+    st.session_state.scroll_to_top = True
+
+def limpiar_rafia():
+    if "peso_rafia" in st.session_state:
+        st.session_state["peso_rafia"] = None
+    st.session_state.scroll_to_top = True
 
 def render_tab(reglas, tab_key, validar_espesor_individual=True):
+    col_dec1, col_dec2 = st.columns([1, 1])
+    with col_dec1:
+        modo_decimal = st.toggle("Activar Modo Decimal (Suma automática a base)", value=False, key=f"decimal_{tab_key}")
+        
+    base_diam = int(reglas['diam_min'])
+    base_esp = int(reglas['esp_min'])
+    
     col1, col2 = st.columns(2)
+
+    def create_input(label, key_suffix, base):
+        val = None
+        usar_entero = False
+        if modo_decimal:
+            ci_1, ci_2 = st.columns([3, 1])
+            with ci_1:
+                val = st.number_input(label, value=None, format="%.2f", step=0.01, key=f"{key_suffix}_{tab_key}")
+            with ci_2:
+                st.markdown("<div style='margin-top: 35px;'></div>", unsafe_allow_html=True)
+                usar_entero = st.checkbox("Entero", key=f"chk_entero_{key_suffix}_{tab_key}", help="Usar valor literal ingresado para esta fila")
+        else:
+            val = st.number_input(label, value=None, format="%.2f", step=0.01, key=f"{key_suffix}_{tab_key}")
+            
+        if val is not None:
+            if modo_decimal and not usar_entero:
+                return base + (val / 100)
+            else:
+                return val
+        return None
 
     with col1:
         st.markdown(f"#### Diámetros (Norma: {reglas['diam_min']:.2f} - {reglas['diam_max']:.2f} mm)")
-        d1 = st.number_input("D1", value=None, format="%.2f", step=0.01, key=f"d1_{tab_key}")
-        d2 = st.number_input("D2", value=None, format="%.2f", step=0.01, key=f"d2_{tab_key}")
-        d3 = st.number_input("D3", value=None, format="%.2f", step=0.01, key=f"d3_{tab_key}")
-        d4 = st.number_input("D4", value=None, format="%.2f", step=0.01, key=f"d4_{tab_key}")
+        if modo_decimal:
+            st.caption(f"ℹ️ Base asumida: **{base_diam}**")
+            
+        d1 = create_input("D1", "d1", base_diam)
+        d2 = create_input("D2", "d2", base_diam)
+        d3 = create_input("D3", "d3", base_diam)
+        d4 = create_input("D4", "d4", base_diam)
         st.caption(f"Límite de Ovalidad: {reglas['oval_max']:.2f} mm")
 
     with col2:
         st.markdown(f"#### Espesores (Norma: {reglas['esp_min']:.2f} - {reglas['esp_max']:.2f} mm)")
-        e1 = st.number_input("E1", value=None, format="%.2f", step=0.01, key=f"e1_{tab_key}")
-        e2 = st.number_input("E2", value=None, format="%.2f", step=0.01, key=f"e2_{tab_key}")
-        e3 = st.number_input("E3", value=None, format="%.2f", step=0.01, key=f"e3_{tab_key}")
-        e4 = st.number_input("E4", value=None, format="%.2f", step=0.01, key=f"e4_{tab_key}")
+        if modo_decimal:
+            st.caption(f"ℹ️ Base asumida: **{base_esp}**")
+            
+        e1 = create_input("E1", "e1", base_esp)
+        e2 = create_input("E2", "e2", base_esp)
+        e3 = create_input("E3", "e3", base_esp)
+        e4 = create_input("E4", "e4", base_esp)
 
     st.divider()
 
@@ -182,7 +269,7 @@ def render_tab(reglas, tab_key, validar_espesor_individual=True):
                 st.success("✨ ¡Excelente! Las mediciones evaluadas cumplen con la norma.")
 
 # --- Tab Layout ---
-tab_cpvc, tab_estante, tab_pvc, tab_pvc_rd, tab_ppr, tab_cespol = st.tabs(["CPVC", "Tubo de Estante", "PVC Cédula 40", "PVC RD", "PPR", "Tubo de Céspol"])
+tab_cpvc, tab_estante, tab_pvc, tab_pvc_rd, tab_ppr, tab_cespol, tab_rafia = st.tabs(["CPVC", "Tubo de Estante", "PVC Cédula 40", "PVC RD", "PPR", "Tubo de Céspol", "Rafia"])
 
 with tab_cpvc:
     clave = st.selectbox("📌 Seleccione Clave:", list(REFERENCE_DATA_CPVC.keys()), key="sel_cpvc")
@@ -214,3 +301,28 @@ with tab_cespol:
     clave_cespol = st.selectbox("📌 Seleccione Clave:", list(REFERENCE_DATA_CESPOL.keys()), key="sel_cespol")
     st.divider()
     render_tab(REFERENCE_DATA_CESPOL[clave_cespol], "cespol")
+
+with tab_rafia:
+    st.markdown("#### 📌 Especificaciones de Rafia")
+    st.divider()
+    
+    col_raf_in, col_space = st.columns([1, 1])
+    with col_raf_in:
+        peso_rafia = st.number_input("Ingresar Peso (g)", value=None, format="%.2f", step=0.1, key="peso_rafia")
+    
+    col_btns1, col_btns2 = st.columns([3, 1])
+    with col_btns2:
+        st.button("🧹 Limpiar Todo", on_click=limpiar_rafia, use_container_width=True, key="btn_clean_rafia")
+    
+    if peso_rafia is not None and peso_rafia > 0:
+        peso_por_metro = peso_rafia / 9
+        denier = peso_por_metro * 9000
+        
+        st.divider()
+        st.write("### 📝 Resultados Calculados")
+        
+        c1, c2 = st.columns(2)
+        with c1:
+            st.markdown(f"<div class='rafia-card'><div class='rafia-title'>Peso por metro (g/m)</div><div class='rafia-value'>{peso_por_metro:.2f}</div></div>", unsafe_allow_html=True)
+        with c2:
+            st.markdown(f"<div class='rafia-card'><div class='rafia-title'>Denier</div><div class='rafia-value'>{denier:.0f}</div></div>", unsafe_allow_html=True)
