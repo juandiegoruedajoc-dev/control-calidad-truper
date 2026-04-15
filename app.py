@@ -1,9 +1,20 @@
 import streamlit as st
 import pandas as pd
 import streamlit.components.v1 as components
+from streamlit_javascript import st_javascript
 
 # Configuración de la página
 st.set_page_config(page_title='Control de Calidad Truper', layout='wide', initial_sidebar_state='collapsed')
+
+# Viewport Forzado (Adiós Zoom y Vista Computadora)
+components.html(
+    "<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0'>",
+    height=0,
+)
+
+# Inicialización de Responsive State
+ui_width = st_javascript("window.innerWidth")
+is_mobile = ui_width > 0 and ui_width < 600
 
 if "scroll_to_top" in st.session_state and st.session_state.scroll_to_top:
     components.html(
@@ -30,6 +41,11 @@ st.markdown("""
     footer {visibility: hidden;}
     
     .stApp { background-color: #FFFFFF; }
+    button[kind="primary"], button[kind="secondary"] { 
+        min-height: 60px !important; 
+        font-size: 1.2rem !important; 
+        font-weight: bold !important;
+    }
     button[kind="primary"] { background-color: #F0711B !important; border-color: #F0711B !important; color: white !important; }
     div[data-testid="stAlert"] {
         padding: 20px;
@@ -191,31 +207,56 @@ def render_tab(reglas, tab_key, validar_espesor_individual=True):
         
         valor_final_retorno = None
         
-        if not modo_manual:
-            ci_1, ci_3, ci_4 = st.columns([1.5, 1.5, 0.8], vertical_alignment="center")
+        # MODO TARJETA MOVIL
+        if is_mobile:
+            st.markdown(
+                "<div style='background-color:#F5F5F5; padding:15px; border-radius:10px; margin-bottom:10px; border-left: 5px solid #F0711B;'>",
+                unsafe_allow_html=True
+            )
+            if not modo_manual:
+                st.markdown(f"<div style='font-size: 1.3rem; margin-bottom: 5px;'><span style='font-weight: bold;'>{label}</span> <span style='font-weight: 900; color: #000;'>{base}.</span></div>", unsafe_allow_html=True)
+                col_inp, col_sw = st.columns([3, 1], vertical_alignment="center")
+                with col_inp:
+                    val = st.number_input(label, value=None, format="%d", step=1, label_visibility="collapsed", key=f"int_{key_suffix}_{tab_key}")
+                with col_sw:
+                    st.toggle("Man", key=toggle_key, label_visibility="collapsed")
+                    
+                if val is not None:
+                    valor_final_retorno = base + (val / 100)
+            else:
+                st.markdown(f"<div style='font-size: 1.3rem; margin-bottom: 5px; font-weight: bold; color: #F0711B;'>{label}</div>", unsafe_allow_html=True)
+                col_inp, col_sw = st.columns([3, 1], vertical_alignment="center")
+                with col_inp:
+                    val = st.number_input(label, value=None, format="%.2f", step=0.01, label_visibility="collapsed", key=f"man_{key_suffix}_{tab_key}")
+                with col_sw:
+                    st.toggle("Man", key=toggle_key, label_visibility="collapsed")
+                    
+                if val is not None:
+                    valor_final_retorno = val
+            st.markdown("</div>", unsafe_allow_html=True)
             
-            with ci_1:
-                st.markdown(f"<span style='font-size: 1.1rem; font-weight: bold;'>{label} <span style='font-size: 1.4rem; font-weight: 900; color: #000;'>{base}.</span></span>", unsafe_allow_html=True)
-            with ci_3:
-                val = st.number_input(label, value=None, format="%d", step=1, label_visibility="collapsed", key=f"int_{key_suffix}_{tab_key}")
-            with ci_4:
-                st.toggle("Man", key=toggle_key, label_visibility="collapsed")
-                
-            if val is not None:
-                valor_final_retorno = base + (val / 100)
-                
+        # MODO TABLA ESCRITORIO
         else:
-            ci_1, ci_3, ci_4 = st.columns([1, 2.5, 0.8], vertical_alignment="center")
-            
-            with ci_1:
-                st.markdown(f"<span style='font-size: 1.1rem; font-weight: bold; color: #F0711B;'>{label}</span>", unsafe_allow_html=True)
-            with ci_3:
-                val = st.number_input(label, value=None, format="%.2f", step=0.01, label_visibility="collapsed", key=f"man_{key_suffix}_{tab_key}")
-            with ci_4:
-                st.toggle("Man", key=toggle_key, label_visibility="collapsed")
-                
-            if val is not None:
-                valor_final_retorno = val
+            if not modo_manual:
+                ci_1, ci_3, ci_4 = st.columns([1.5, 1.5, 0.8], vertical_alignment="center")
+                with ci_1:
+                    st.markdown(f"<span style='font-size: 1.1rem; font-weight: bold;'>{label} <span style='font-size: 1.4rem; font-weight: 900; color: #000;'>{base}.</span></span>", unsafe_allow_html=True)
+                with ci_3:
+                    val = st.number_input(label, value=None, format="%d", step=1, label_visibility="collapsed", key=f"int_{key_suffix}_{tab_key}")
+                with ci_4:
+                    st.toggle("Man", key=toggle_key, label_visibility="collapsed")
+                if val is not None:
+                    valor_final_retorno = base + (val / 100)
+            else:
+                ci_1, ci_3, ci_4 = st.columns([1, 2.5, 0.8], vertical_alignment="center")
+                with ci_1:
+                    st.markdown(f"<span style='font-size: 1.1rem; font-weight: bold; color: #F0711B;'>{label}</span>", unsafe_allow_html=True)
+                with ci_3:
+                    val = st.number_input(label, value=None, format="%.2f", step=0.01, label_visibility="collapsed", key=f"man_{key_suffix}_{tab_key}")
+                with ci_4:
+                    st.toggle("Man", key=toggle_key, label_visibility="collapsed")
+                if val is not None:
+                    valor_final_retorno = val
                 
         return valor_final_retorno
 
