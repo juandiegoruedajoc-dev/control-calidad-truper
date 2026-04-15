@@ -67,18 +67,23 @@ st.markdown("""
         background-color: #F0711B !important;
     }
     /* El selector oficial suele ser la div que funciona como track */
-    /* Fix Fila Protegida Obligatorio */
-    div[data-testid='column'] { 
-        width: unset !important; 
-        flex: 1 1 auto !important; 
-        min-width: 0px !important; 
+    /* Compactación Extrema Móvil */
+    div[data-testid='stHorizontalBlock'] {
+        gap: 0px !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
     }
-    div[data-testid='stHorizontalBlock'] { 
-        flex-wrap: nowrap !important; 
-        align-items: center !important; 
+    div[data-testid='column'] {
+        padding: 0px !important;
+        flex: 0 1 auto !important;
+        min-width: 0px !important;
+    }
+    .stMarkdown p {
+        margin-bottom: 0px !important;
+        white-space: nowrap !important;
     }
     .stNumberInput {
-        max-width: 100px !important;
+        max-width: 60px !important;
     }
     .stNumberInput input { 
         font-size: 20px !important; 
@@ -178,29 +183,31 @@ def render_tab(reglas, tab_key, validar_espesor_individual=True):
         valor_final_retorno = None
         
         if not modo_manual:
-            # 3 Columnas: [ D1 + 15. ] | [ Input ] | [ Switch ]
-            ci_1, ci_2, ci_3 = st.columns([1.5, 1.2, 0.8], vertical_alignment="center")
+            # Compactación extrema (D1 separado de 15.)
+            ci_1, ci_2, ci_3, ci_4 = st.columns([0.5, 0.5, 2, 1], vertical_alignment="center")
             
             with ci_1:
-                st.markdown(f"<span style='font-weight: bold; font-size: 1.1rem; min-width: 30px; display: inline-block;'>{label}</span><span style='font-size: 1.4rem; font-weight: 900; color: #000; margin-left:10px;'>{base}.</span>", unsafe_allow_html=True)
+                st.markdown(f"<span style='font-weight: bold; font-size: 1.1rem;'>{label}</span>", unsafe_allow_html=True)
             with ci_2:
-                val = st.number_input(label, value=None, format="%d", step=1, label_visibility="collapsed", key=f"int_{key_suffix}_{tab_key}")
+                st.markdown(f"<span style='font-size: 1.4rem; font-weight: 900; color: #000;'>{base}.</span>", unsafe_allow_html=True)
             with ci_3:
-                st.toggle("Man", key=toggle_key)
+                val = st.number_input(label, value=None, format="%d", step=1, label_visibility="collapsed", key=f"int_{key_suffix}_{tab_key}")
+            with ci_4:
+                st.toggle("Man", key=toggle_key, label_visibility="collapsed")
                 
             if val is not None:
                 valor_final_retorno = base + (val / 100)
                 
         else:
             # Vista Manual Abierta
-            ci_1, ci_2, ci_3 = st.columns([1.5, 2, 0.8], vertical_alignment="center")
+            ci_1, ci_3, ci_4 = st.columns([0.5, 2.5, 1], vertical_alignment="center")
             
             with ci_1:
                 st.markdown(f"<span style='font-size: 1.1rem; font-weight: bold; color: #F0711B;'>{label}</span>", unsafe_allow_html=True)
-            with ci_2:
-                val = st.number_input(label, value=None, format="%.2f", step=0.01, label_visibility="collapsed", key=f"man_{key_suffix}_{tab_key}")
             with ci_3:
-                st.toggle("Man", key=toggle_key)
+                val = st.number_input(label, value=None, format="%.2f", step=0.01, label_visibility="collapsed", key=f"man_{key_suffix}_{tab_key}")
+            with ci_4:
+                st.toggle("Man", key=toggle_key, label_visibility="collapsed")
                 
             if val is not None:
                 valor_final_retorno = val
