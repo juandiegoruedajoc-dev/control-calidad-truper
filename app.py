@@ -1,20 +1,15 @@
 import streamlit as st
 import pandas as pd
 import streamlit.components.v1 as components
-from streamlit_javascript import st_javascript
 
 # Configuración de la página
 st.set_page_config(page_title='Control de Calidad Truper', layout='wide', initial_sidebar_state='collapsed')
 
-# Viewport Forzado (Adiós Zoom y Vista Computadora)
+# Viewport Forzado nativo (Adiós Zoom y Vista Computadora)
 components.html(
     "<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0'>",
     height=0,
 )
-
-# Inicialización de Responsive State
-ui_width = st_javascript("window.innerWidth")
-is_mobile = ui_width > 0 and ui_width < 600
 
 if "scroll_to_top" in st.session_state and st.session_state.scroll_to_top:
     components.html(
@@ -29,18 +24,37 @@ if "scroll_to_top" in st.session_state and st.session_state.scroll_to_top:
 
 st.markdown("""
     <style>
-    /* Full Width Native y anulación de márgenes Streamlit */
-    .block-container {
-        padding-top: 1rem !important;
-        padding-left: 0.5rem !important;
-        padding-right: 0.5rem !important;
-        max-width: 100% !important;
+    /* Elimina márgenes gigantes de escritorio */
+    .block-container { 
+        padding: 1rem 0.5rem !important; 
+        max-width: 100% !important; 
     }
     header {visibility: hidden;}
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     
     .stApp { background-color: #FFFFFF; }
+    
+    /* Arquitectura CSS Flex (Remplazo de st.columns) */
+    div[data-testid="stVerticalBlock"]:has(.movil-row-start) {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        margin-bottom: 2px !important;
+        gap: 5px !important;
+    }
+    /* Restringir componentes dentro del flex para evitar colapsos */
+    div[data-testid="stVerticalBlock"]:has(.movil-row-start) > div.element-container {
+        width: auto !important;
+        flex: 0 1 auto !important;
+    }
+    
+    /* Reglas del Usuario */
+    .movil-label { font-weight: bold; font-size: 18px; margin-right: 5px; }
+    div[data-testid='stNumberInput'] { width: 90px !important; min-width: 90px !important; }
+    
     button[kind="primary"], button[kind="secondary"] { 
         min-height: 60px !important; 
         font-size: 1.2rem !important; 
@@ -207,54 +221,22 @@ def render_tab(reglas, tab_key, validar_espesor_individual=True):
         
         valor_final_retorno = None
         
-        # MODO TARJETA MOVIL
-        if is_mobile:
-            st.markdown(
-                "<div style='background-color:#F5F5F5; padding:15px; border-radius:10px; margin-bottom:10px; border-left: 5px solid #F0711B;'>",
-                unsafe_allow_html=True
-            )
-            if not modo_manual:
-                st.markdown(f"<div style='font-size: 1.3rem; margin-bottom: 5px;'><span style='font-weight: bold;'>{label}</span> <span style='font-weight: 900; color: #000;'>{base}.</span></div>", unsafe_allow_html=True)
-                col_inp, col_sw = st.columns([3, 1], vertical_alignment="center")
-                with col_inp:
-                    val = st.number_input(label, value=None, format="%d", step=1, label_visibility="collapsed", key=f"int_{key_suffix}_{tab_key}")
-                with col_sw:
-                    st.toggle("Man", key=toggle_key, label_visibility="collapsed")
-                    
-                if val is not None:
-                    valor_final_retorno = base + (val / 100)
-            else:
-                st.markdown(f"<div style='font-size: 1.3rem; margin-bottom: 5px; font-weight: bold; color: #F0711B;'>{label}</div>", unsafe_allow_html=True)
-                col_inp, col_sw = st.columns([3, 1], vertical_alignment="center")
-                with col_inp:
-                    val = st.number_input(label, value=None, format="%.2f", step=0.01, label_visibility="collapsed", key=f"man_{key_suffix}_{tab_key}")
-                with col_sw:
-                    st.toggle("Man", key=toggle_key, label_visibility="collapsed")
-                    
-                if val is not None:
-                    valor_final_retorno = val
-            st.markdown("</div>", unsafe_allow_html=True)
+        with st.container():
+            # El marcador que dispara el CSS transformador :has()
+            st.markdown('<div class="movil-row-start" style="display:none;"></div>', unsafe_allow_html=True)
             
-        # MODO TABLA ESCRITORIO
-        else:
             if not modo_manual:
-                ci_1, ci_3, ci_4 = st.columns([1.5, 1.5, 0.8], vertical_alignment="center")
-                with ci_1:
-                    st.markdown(f"<span style='font-size: 1.1rem; font-weight: bold;'>{label} <span style='font-size: 1.4rem; font-weight: 900; color: #000;'>{base}.</span></span>", unsafe_allow_html=True)
-                with ci_3:
-                    val = st.number_input(label, value=None, format="%d", step=1, label_visibility="collapsed", key=f"int_{key_suffix}_{tab_key}")
-                with ci_4:
-                    st.toggle("Man", key=toggle_key, label_visibility="collapsed")
+                st.markdown(f"<span class='movil-label'>{label} <span style='font-weight:900; color:#000;'>{base}.</span></span>", unsafe_allow_html=True)
+                val = st.number_input(label, value=None, format="%d", step=1, label_visibility="collapsed", key=f"int_{key_suffix}_{tab_key}")
+                st.toggle("Man", key=toggle_key, label_visibility="collapsed")
+                
                 if val is not None:
                     valor_final_retorno = base + (val / 100)
             else:
-                ci_1, ci_3, ci_4 = st.columns([1, 2.5, 0.8], vertical_alignment="center")
-                with ci_1:
-                    st.markdown(f"<span style='font-size: 1.1rem; font-weight: bold; color: #F0711B;'>{label}</span>", unsafe_allow_html=True)
-                with ci_3:
-                    val = st.number_input(label, value=None, format="%.2f", step=0.01, label_visibility="collapsed", key=f"man_{key_suffix}_{tab_key}")
-                with ci_4:
-                    st.toggle("Man", key=toggle_key, label_visibility="collapsed")
+                st.markdown(f"<span class='movil-label' style='color:#F0711B;'>{label}</span>", unsafe_allow_html=True)
+                val = st.number_input(label, value=None, format="%.2f", step=0.01, label_visibility="collapsed", key=f"man_{key_suffix}_{tab_key}")
+                st.toggle("Man", key=toggle_key, label_visibility="collapsed")
+                
                 if val is not None:
                     valor_final_retorno = val
                 
