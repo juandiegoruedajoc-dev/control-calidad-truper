@@ -98,7 +98,7 @@ REFERENCE_DATA_CESPOL = {
 
 def limpiar_campos(tab_key):
     for key in ["d1", "d2", "d3", "d4", "e1", "e2", "e3", "e4"]:
-        for prefix in ["", "int_", "man_"]:
+        for prefix in ["", "int_", "man_", "chk_"]:
             full_key = f"{prefix}{key}_{tab_key}"
             if full_key in st.session_state:
                 st.session_state[full_key] = None
@@ -111,55 +111,27 @@ def render_tab(reglas, tab_key, validar_espesor_individual=True):
     base_diam = int(reglas['diam_min'])
     base_esp = int(reglas['esp_min'])
     
-    # Inyectamos el CSS para que las dos columnas del encabezado no colapsen
-    st.markdown("""
-        <style>
-        div[data-testid="stHorizontalBlock"] {
-            flex-wrap: nowrap !important;
-            align-items: center !important;
-        }
-        div[data-testid="column"] {
-            min-width: 0px !important;
-        }
-        /* Reducimos el margen interno del contenedor para que se vea más compacto */
-        div[data-testid="stVerticalBlock"] > div[data-testid="stVerticalBlockBorderWrapper"] > div {
-            padding: 10px !important;
-        }
-        </style>
-    """, unsafe_allow_html=True)
-
     def create_input_card(label_str, id_str, base_val):
         val = None
         with st.container(border=True):
-            # Fila 1: Título, Base e Interruptor al MISMO nivel
-            col_tit, col_tgl = st.columns([2, 1], vertical_alignment="center")
-            with col_tgl:
-                modo_manual = st.toggle("Libre", key=f"tgl_{id_str}_{tab_key}")
-            with col_tit:
-                if not modo_manual:
-                    st.markdown(f"📏 **{label_str}** | Base **{base_val}.**")
-                else:
-                    st.markdown(f"📏 **{label_str}** | *Libre*")
+            modo_manual = st.checkbox(f"📏 **{label_str}** — Modo Libre", key=f"chk_{id_str}_{tab_key}")
                 
-            # Fila 2: El Input usando el 100% del ancho para máxima legibilidad
             if not modo_manual:
                 input_val = st.number_input(
-                    "Ingresa los decimales", 
+                    f"🟢 Base: **{base_val}.**", 
                     value=None, 
                     format="%d", 
                     step=1, 
-                    label_visibility="collapsed", 
                     key=f"int_{id_str}_{tab_key}"
                 )
                 if input_val is not None:
                     val = base_val + (input_val / 100.0)
             else:
                 input_val = st.number_input(
-                    "Lectura completa", 
+                    f"Lectura completa (Flotante)", 
                     value=None, 
                     format="%.2f", 
                     step=0.01, 
-                    label_visibility="collapsed", 
                     key=f"man_{id_str}_{tab_key}"
                 )
                 if input_val is not None:
