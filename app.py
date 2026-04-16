@@ -98,33 +98,70 @@ REFERENCE_DATA_CESPOL = {
 
 def limpiar_campos(tab_key):
     for key in ["d1", "d2", "d3", "d4", "e1", "e2", "e3", "e4"]:
-        full_key = f"{key}_{tab_key}"
-        if full_key in st.session_state:
-            st.session_state[full_key] = None
+        for prefix in ["", "int_", "man_"]:
+            full_key = f"{prefix}{key}_{tab_key}"
+            if full_key in st.session_state:
+                st.session_state[full_key] = None
 
 def limpiar_rafia():
     if "peso_rafia" in st.session_state:
         st.session_state["peso_rafia"] = None
 
 def render_tab(reglas, tab_key, validar_espesor_individual=True):
+    base_diam = int(reglas['diam_min'])
+    base_esp = int(reglas['esp_min'])
+    
+    modo_manual_general = st.toggle("✨ Modo Captura Libre (Desactivar base constante)", key=f"global_man_{tab_key}")
+    st.divider()
+    
+    def create_input_card(label_str, id_str, base_val):
+        val = None
+        with st.container(border=True):
+            if not modo_manual_general:
+                st.markdown(f"📏 **{label_str}**")
+                st.caption(f"🟢 Base: **{base_val}.**")
+                input_val = st.number_input(
+                    "Ingresa los decimales", 
+                    value=None, 
+                    format="%d", 
+                    step=1, 
+                    label_visibility="collapsed", 
+                    key=f"int_{id_str}_{tab_key}"
+                )
+                if input_val is not None:
+                    val = base_val + (input_val / 100.0)
+            else:
+                st.markdown(f"📏 **{label_str}** (Libre)")
+                input_val = st.number_input(
+                    "Lectura completa", 
+                    value=None, 
+                    format="%.2f", 
+                    step=0.01, 
+                    label_visibility="collapsed", 
+                    key=f"man_{id_str}_{tab_key}"
+                )
+                if input_val is not None:
+                    val = input_val
+        return val
+
     col1, col2 = st.columns(2)
 
     with col1:
         st.markdown(f"#### Diámetros (Norma: {reglas['diam_min']:.2f} - {reglas['diam_max']:.2f} mm)")
             
-        d1 = st.number_input("D1", value=None, format="%.2f", step=0.01, key=f"d1_{tab_key}")
-        d2 = st.number_input("D2", value=None, format="%.2f", step=0.01, key=f"d2_{tab_key}")
-        d3 = st.number_input("D3", value=None, format="%.2f", step=0.01, key=f"d3_{tab_key}")
-        d4 = st.number_input("D4", value=None, format="%.2f", step=0.01, key=f"d4_{tab_key}")
+        d1 = create_input_card("D1", "d1", base_diam)
+        d2 = create_input_card("D2", "d2", base_diam)
+        d3 = create_input_card("D3", "d3", base_diam)
+        d4 = create_input_card("D4", "d4", base_diam)
         st.caption(f"Límite de Ovalidad: {reglas['oval_max']:.2f} mm")
 
     with col2:
         st.markdown(f"#### Espesores (Norma: {reglas['esp_min']:.2f} - {reglas['esp_max']:.2f} mm)")
             
-        e1 = st.number_input("E1", value=None, format="%.2f", step=0.01, key=f"e1_{tab_key}")
-        e2 = st.number_input("E2", value=None, format="%.2f", step=0.01, key=f"e2_{tab_key}")
-        e3 = st.number_input("E3", value=None, format="%.2f", step=0.01, key=f"e3_{tab_key}")
-        e4 = st.number_input("E4", value=None, format="%.2f", step=0.01, key=f"e4_{tab_key}")
+        e1 = create_input_card("E1", "e1", base_esp)
+        e2 = create_input_card("E2", "e2", base_esp)
+        e3 = create_input_card("E3", "e3", base_esp)
+        e4 = create_input_card("E4", "e4", base_esp)
 
     st.divider()
 
