@@ -1,65 +1,16 @@
 import streamlit as st
 import pandas as pd
-import streamlit.components.v1 as components
 
 # Configuración de la página
 st.set_page_config(page_title='Control de Calidad Truper', layout='wide', initial_sidebar_state='collapsed')
 
-# Viewport Forzado nativo (Adiós Zoom y Vista Computadora)
-components.html(
-    "<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0'>",
-    height=0,
-)
-
-if "scroll_to_top" in st.session_state and st.session_state.scroll_to_top:
-    components.html(
-        """
-        <script>
-            window.parent.scrollTo(0,0);
-            window.parent.document.querySelector('.main').scrollTo(0,0);
-        </script>
-        """, height=0
-    )
-    st.session_state.scroll_to_top = False
-
 st.markdown("""
     <style>
-    /* Diseño Limpio Libre de Stacking en CSS */
-    .block-container { 
-        padding: 1rem 0.5rem !important; 
-        max-width: 100% !important; 
-    }
-    header {visibility: hidden;}
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    
-    .stApp { background-color: #FFFFFF; }
-    
-    button[kind="primary"] { 
-        min-height: 60px !important; 
-        font-size: 1.2rem !important; 
-        font-weight: bold !important;
-        background-color: #F0711B !important; 
-        border-color: #F0711B !important; 
-        color: white !important; 
-    }
-    div[data-testid="stAlert"] {
-        padding: 20px;
-    }
     .big-title {
         font-size: 3rem !important;
         font-weight: 800 !important;
         text-align: center;
         margin-bottom: 0px !important;
-    }
-    /* Estilos nuevos para inputs y modo Rafia */
-    div[data-baseweb="input"] > div {
-        min-height: 60px !important;
-        font-size: 1.2rem !important;
-    }
-    input[type="number"] {
-        font-size: 1.2rem !important;
-        height: 100% !important;
     }
     .rafia-card {
         background-color: #f9f9f9;
@@ -79,36 +30,6 @@ st.markdown("""
         font-size: 3rem;
         font-weight: 900;
         color: #F0711B;
-    }
-    /* Estilos para Toggles activos */
-    div[data-testid="stToggle"] > label > div[data-checked="true"] > div {
-        background-color: #F0711B !important;
-    }
-    div[data-testid="stToggle"] label[data-checked="true"] div[data-baseweb="checkbox"] > div {
-        background-color: #F0711B !important;
-    }
-    /* El selector oficial suele ser la div que funciona como track */
-    /* Compactación Extrema Móvil */
-    div[data-testid='stHorizontalBlock'] {
-        gap: 0px !important;
-        flex-wrap: nowrap !important;
-        align-items: center !important;
-    }
-    div[data-testid='column'] {
-        padding: 0px !important;
-        flex: 0 1 auto !important;
-        min-width: 0px !important;
-    }
-    .stMarkdown p {
-        margin-bottom: 0px !important;
-        white-space: nowrap !important;
-    }
-    .stNumberInput {
-        max-width: 80px !important;
-    }
-    .stNumberInput input { 
-        font-size: 16px !important; 
-        padding: 5px !important; 
     }
     </style>
 """, unsafe_allow_html=True)
@@ -180,61 +101,38 @@ def limpiar_campos(tab_key):
         full_key = f"{key}_{tab_key}"
         if full_key in st.session_state:
             st.session_state[full_key] = None
-        chk_key = f"chk_entero_{key}_{tab_key}"
-        if chk_key in st.session_state:
-            st.session_state[chk_key] = False
-        
-    st.session_state.scroll_to_top = True
 
 def limpiar_rafia():
     if "peso_rafia" in st.session_state:
         st.session_state["peso_rafia"] = None
-    st.session_state.scroll_to_top = True
 
 def render_tab(reglas, tab_key, validar_espesor_individual=True):
-    base_diam = int(reglas['diam_min'])
-    base_esp = int(reglas['esp_min'])
-    
-    modo_manual_general = st.toggle("✨ Modo Captura Libre", key=f"global_man_{tab_key}")
-    st.divider()
-
     col1, col2 = st.columns(2)
-
-    def create_input(label, key_suffix, base):
-        val = None
-        if not modo_manual_general:
-            st.write(f"**{label} (Base {base}.)**")
-            input_val = st.number_input(label, value=None, format="%d", step=1, label_visibility="collapsed", key=f"int_{key_suffix}_{tab_key}")
-            if input_val is not None:
-                val = base + (input_val / 100.0)
-        else:
-            st.write(f"**{label}**")
-            input_val = st.number_input(label, value=None, format="%.2f", step=0.01, label_visibility="collapsed", key=f"man_{key_suffix}_{tab_key}")
-            if input_val is not None:
-                val = input_val
-                
-        return val
 
     with col1:
         st.markdown(f"#### Diámetros (Norma: {reglas['diam_min']:.2f} - {reglas['diam_max']:.2f} mm)")
             
-        d1 = create_input("D1", "d1", base_diam)
-        d2 = create_input("D2", "d2", base_diam)
-        d3 = create_input("D3", "d3", base_diam)
-        d4 = create_input("D4", "d4", base_diam)
+        d1 = st.number_input("D1", value=None, format="%.2f", step=0.01, key=f"d1_{tab_key}")
+        d2 = st.number_input("D2", value=None, format="%.2f", step=0.01, key=f"d2_{tab_key}")
+        d3 = st.number_input("D3", value=None, format="%.2f", step=0.01, key=f"d3_{tab_key}")
+        d4 = st.number_input("D4", value=None, format="%.2f", step=0.01, key=f"d4_{tab_key}")
         st.caption(f"Límite de Ovalidad: {reglas['oval_max']:.2f} mm")
 
     with col2:
         st.markdown(f"#### Espesores (Norma: {reglas['esp_min']:.2f} - {reglas['esp_max']:.2f} mm)")
             
-        e1 = create_input("E1", "e1", base_esp)
-        e2 = create_input("E2", "e2", base_esp)
-        e3 = create_input("E3", "e3", base_esp)
-        e4 = create_input("E4", "e4", base_esp)
+        e1 = st.number_input("E1", value=None, format="%.2f", step=0.01, key=f"e1_{tab_key}")
+        e2 = st.number_input("E2", value=None, format="%.2f", step=0.01, key=f"e2_{tab_key}")
+        e3 = st.number_input("E3", value=None, format="%.2f", step=0.01, key=f"e3_{tab_key}")
+        e4 = st.number_input("E4", value=None, format="%.2f", step=0.01, key=f"e4_{tab_key}")
 
     st.divider()
 
-    evaluar_btn = st.button("🚀 EVALUAR MEDIDAS", type="primary", use_container_width=True, key=f"btn_eval_{tab_key}")
+    col_btns1, col_btns2 = st.columns([3, 1])
+    with col_btns1:
+        evaluar_btn = st.button("🚀 EVALUAR MEDIDAS", type="primary", use_container_width=True, key=f"btn_eval_{tab_key}")
+    with col_btns2:
+        st.button("🧹 Limpiar Todo", on_click=limpiar_campos, args=(tab_key,), use_container_width=True, key=f"btn_clean_{tab_key}")
 
     if evaluar_btn:
         diams_raw = [d1, d2, d3, d4]
