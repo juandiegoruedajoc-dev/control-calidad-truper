@@ -24,7 +24,7 @@ if "scroll_to_top" in st.session_state and st.session_state.scroll_to_top:
 
 st.markdown("""
     <style>
-    /* Elimina márgenes gigantes de escritorio */
+    /* Diseño Limpio Libre de Stacking en CSS */
     .block-container { 
         padding: 1rem 0.5rem !important; 
         max-width: 100% !important; 
@@ -35,32 +35,14 @@ st.markdown("""
     
     .stApp { background-color: #FFFFFF; }
     
-    /* Arquitectura CSS Flex (Remplazo de st.columns) */
-    div[data-testid="stVerticalBlock"]:has(.movil-row-start) {
-        display: flex !important;
-        flex-direction: row !important;
-        flex-wrap: nowrap !important;
-        align-items: center !important;
-        justify-content: space-between !important;
-        margin-bottom: 2px !important;
-        gap: 5px !important;
-    }
-    /* Restringir componentes dentro del flex para evitar colapsos */
-    div[data-testid="stVerticalBlock"]:has(.movil-row-start) > div.element-container {
-        width: auto !important;
-        flex: 0 1 auto !important;
-    }
-    
-    /* Reglas del Usuario */
-    .movil-label { font-weight: bold; font-size: 18px; margin-right: 5px; }
-    div[data-testid='stNumberInput'] { width: 90px !important; min-width: 90px !important; }
-    
-    button[kind="primary"], button[kind="secondary"] { 
+    button[kind="primary"] { 
         min-height: 60px !important; 
         font-size: 1.2rem !important; 
         font-weight: bold !important;
+        background-color: #F0711B !important; 
+        border-color: #F0711B !important; 
+        color: white !important; 
     }
-    button[kind="primary"] { background-color: #F0711B !important; border-color: #F0711B !important; color: white !important; }
     div[data-testid="stAlert"] {
         padding: 20px;
     }
@@ -213,34 +195,25 @@ def render_tab(reglas, tab_key, validar_espesor_individual=True):
     base_diam = int(reglas['diam_min'])
     base_esp = int(reglas['esp_min'])
     
+    modo_manual_general = st.toggle("✨ Modo Captura Libre", key=f"global_man_{tab_key}")
+    st.divider()
+
     col1, col2 = st.columns(2)
 
     def create_input(label, key_suffix, base):
-        toggle_key = f"chk_entero_{key_suffix}_{tab_key}"
-        modo_manual = st.session_state.get(toggle_key, False)
-        
-        valor_final_retorno = None
-        
-        with st.container():
-            # El marcador que dispara el CSS transformador :has()
-            st.markdown('<div class="movil-row-start" style="display:none;"></div>', unsafe_allow_html=True)
-            
-            if not modo_manual:
-                st.markdown(f"<span class='movil-label'>{label} <span style='font-weight:900; color:#000;'>{base}.</span></span>", unsafe_allow_html=True)
-                val = st.number_input(label, value=None, format="%d", step=1, label_visibility="collapsed", key=f"int_{key_suffix}_{tab_key}")
-                st.toggle("Man", key=toggle_key, label_visibility="collapsed")
+        val = None
+        if not modo_manual_general:
+            st.write(f"**{label} (Base {base}.)**")
+            input_val = st.number_input(label, value=None, format="%d", step=1, label_visibility="collapsed", key=f"int_{key_suffix}_{tab_key}")
+            if input_val is not None:
+                val = base + (input_val / 100.0)
+        else:
+            st.write(f"**{label}**")
+            input_val = st.number_input(label, value=None, format="%.2f", step=0.01, label_visibility="collapsed", key=f"man_{key_suffix}_{tab_key}")
+            if input_val is not None:
+                val = input_val
                 
-                if val is not None:
-                    valor_final_retorno = base + (val / 100)
-            else:
-                st.markdown(f"<span class='movil-label' style='color:#F0711B;'>{label}</span>", unsafe_allow_html=True)
-                val = st.number_input(label, value=None, format="%.2f", step=0.01, label_visibility="collapsed", key=f"man_{key_suffix}_{tab_key}")
-                st.toggle("Man", key=toggle_key, label_visibility="collapsed")
-                
-                if val is not None:
-                    valor_final_retorno = val
-                
-        return valor_final_retorno
+        return val
 
     with col1:
         st.markdown(f"#### Diámetros (Norma: {reglas['diam_min']:.2f} - {reglas['diam_max']:.2f} mm)")
@@ -262,7 +235,6 @@ def render_tab(reglas, tab_key, validar_espesor_individual=True):
     st.divider()
 
     evaluar_btn = st.button("🚀 EVALUAR MEDIDAS", type="primary", use_container_width=True, key=f"btn_eval_{tab_key}")
-    st.button("🧹 Limpiar Todo", on_click=limpiar_campos, args=(tab_key,), use_container_width=True, key=f"btn_clean_{tab_key}")
 
     if evaluar_btn:
         diams_raw = [d1, d2, d3, d4]
