@@ -111,14 +111,16 @@ def render_tab(reglas, tab_key, validar_espesor_individual=True):
     base_diam = int(reglas['diam_min'])
     base_esp = int(reglas['esp_min'])
     
-    modo_manual_general = st.toggle("✨ Modo Captura Libre (Desactivar base constante)", key=f"global_man_{tab_key}")
-    st.divider()
-    
     def create_input_card(label_str, id_str, base_val):
         val = None
         with st.container(border=True):
-            if not modo_manual_general:
+            col_tit, col_tgl = st.columns([1, 1])
+            with col_tit:
                 st.markdown(f"📏 **{label_str}**")
+            with col_tgl:
+                modo_manual = st.toggle("Libre", key=f"tgl_{id_str}_{tab_key}")
+                
+            if not modo_manual:
                 st.caption(f"🟢 Base: **{base_val}.**")
                 input_val = st.number_input(
                     "Ingresa los decimales", 
@@ -131,7 +133,6 @@ def render_tab(reglas, tab_key, validar_espesor_individual=True):
                 if input_val is not None:
                     val = base_val + (input_val / 100.0)
             else:
-                st.markdown(f"📏 **{label_str}** (Libre)")
                 input_val = st.number_input(
                     "Lectura completa", 
                     value=None, 
