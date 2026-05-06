@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 
 # Configuración de la página
-st.set_page_config(page_title='Control de Calidad Truper', layout='wide', initial_sidebar_state='collapsed')
+st.set_page_config(page_title='Cálculos de tubos de perfileria', layout='wide', initial_sidebar_state='collapsed')
 
 st.markdown("""
     <style>
@@ -101,7 +101,10 @@ def limpiar_campos(tab_key):
         for prefix in ["", "int_", "man_", "chk_"]:
             full_key = f"{prefix}{key}_{tab_key}"
             if full_key in st.session_state:
-                st.session_state[full_key] = None
+                if prefix == "chk_":
+                    st.session_state[full_key] = False
+                else:
+                    st.session_state[full_key] = None
 
 def limpiar_rafia():
     if "peso_rafia" in st.session_state:
@@ -273,18 +276,23 @@ with tab_rafia:
         peso_rafia = st.number_input("Ingresar Peso (g)", value=None, format="%.2f", step=0.1, key="peso_rafia")
     
     col_btns1, col_btns2 = st.columns([3, 1])
+    with col_btns1:
+        evaluar_rafia_btn = st.button("🚀 CALCULAR", type="primary", use_container_width=True, key="btn_eval_rafia")
     with col_btns2:
         st.button("🧹 Limpiar Todo", on_click=limpiar_rafia, use_container_width=True, key="btn_clean_rafia")
     
-    if peso_rafia is not None and peso_rafia > 0:
-        peso_por_metro = peso_rafia / 9
-        denier = peso_por_metro * 9000
-        
-        st.divider()
-        st.write("### 📝 Resultados Calculados")
-        
-        c1, c2 = st.columns(2)
-        with c1:
-            st.markdown(f"<div class='rafia-card'><div class='rafia-title'>Peso por metro (g/m)</div><div class='rafia-value'>{peso_por_metro:.2f}</div></div>", unsafe_allow_html=True)
-        with c2:
-            st.markdown(f"<div class='rafia-card'><div class='rafia-title'>Denier</div><div class='rafia-value'>{denier:.0f}</div></div>", unsafe_allow_html=True)
+    if evaluar_rafia_btn:
+        if peso_rafia is not None and peso_rafia > 0:
+            peso_por_metro = peso_rafia / 9
+            denier = peso_por_metro * 9000
+            
+            st.divider()
+            st.write("### 📝 Resultados Calculados")
+            
+            c1, c2 = st.columns(2)
+            with c1:
+                st.markdown(f"<div class='rafia-card'><div class='rafia-title'>Peso por metro (g/m)</div><div class='rafia-value'>{peso_por_metro:.2f}</div></div>", unsafe_allow_html=True)
+            with c2:
+                st.markdown(f"<div class='rafia-card'><div class='rafia-title'>Denier</div><div class='rafia-value'>{denier:.0f}</div></div>", unsafe_allow_html=True)
+        else:
+            st.warning("⚠️ Ingresa un peso válido para calcular.")
