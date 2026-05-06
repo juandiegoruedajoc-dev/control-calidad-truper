@@ -4,7 +4,33 @@ import pandas as pd
 # Configuración de la página
 st.set_page_config(page_title='Cálculos de tubos de perfileria', page_icon='https://raw.githubusercontent.com/juandiegoruedajoc-dev/control-calidad-truper/main/logotipo%20de%20truper.png', layout='wide', initial_sidebar_state='collapsed')
 
-st.markdown("""
+import base64
+
+manifest_json = """
+{
+  "name": "Cálculos de tubos de perfileria",
+  "short_name": "Cálculos Truper",
+  "theme_color": "#ffffff",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "icons": [
+    {
+      "src": "https://raw.githubusercontent.com/juandiegoruedajoc-dev/control-calidad-truper/main/logotipo%20de%20truper.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://raw.githubusercontent.com/juandiegoruedajoc-dev/control-calidad-truper/main/logotipo%20de%20truper.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
+"""
+manifest_b64 = base64.b64encode(manifest_json.encode('utf-8')).decode('utf-8')
+
+st.markdown(f"""
+    <link rel="manifest" href="data:application/manifest+json;base64,{manifest_b64}">
     <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/juandiegoruedajoc-dev/control-calidad-truper/main/logotipo%20de%20truper.png">
     <meta name="apple-mobile-web-app-title" content="Cálculos Truper">
     <meta name="application-name" content="Cálculos Truper">
