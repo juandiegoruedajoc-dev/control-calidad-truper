@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 
 # Configuración de la página
-st.set_page_config(page_title='Cálculos de tubos de perfileria', layout='wide', initial_sidebar_state='collapsed')
+st.set_page_config(page_title='Cálculos de tubos de perfileria', page_icon='https://raw.githubusercontent.com/juandiegoruedajoc-dev/control-calidad-truper/main/logotipo%20de%20truper.png', layout='wide', initial_sidebar_state='collapsed')
 
 st.markdown("""
     <style>
