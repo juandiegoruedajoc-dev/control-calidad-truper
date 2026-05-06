@@ -5,6 +5,9 @@ import pandas as pd
 st.set_page_config(page_title='Cálculos de tubos de perfileria', page_icon='https://raw.githubusercontent.com/juandiegoruedajoc-dev/control-calidad-truper/main/logotipo%20de%20truper.png', layout='wide', initial_sidebar_state='collapsed')
 
 st.markdown("""
+    <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/juandiegoruedajoc-dev/control-calidad-truper/main/logotipo%20de%20truper.png">
+    <meta name="apple-mobile-web-app-title" content="Cálculos Truper">
+    <meta name="application-name" content="Cálculos Truper">
     <style>
     .big-title {
         font-size: 3rem !important;
