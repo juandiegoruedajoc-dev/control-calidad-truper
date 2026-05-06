@@ -34,6 +34,9 @@ st.markdown(f"""
     <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/juandiegoruedajoc-dev/control-calidad-truper/main/logotipo%20de%20truper.png">
     <meta name="apple-mobile-web-app-title" content="Cálculos Truper">
     <meta name="application-name" content="Cálculos Truper">
+""", unsafe_allow_html=True)
+
+st.markdown("""
     <style>
     .big-title {
         font-size: 3rem !important;
