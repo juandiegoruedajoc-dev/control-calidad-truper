@@ -71,39 +71,42 @@ col_img1, col_img2, col_img3 = st.columns([1, 2, 1])
 with col_img2:
     st.image("https://raw.githubusercontent.com/juandiegoruedajoc-dev/control-calidad-truper/main/logotipo%20de%20truper.png", width=180)
 
-st.title("Cálculos de tubos de perfileria")
+# --- Lógica de Equipos (Google Sheets) ---
+@st.cache_data(ttl=60)
+def cargar_equipos():
+    url = "https://docs.google.com/spreadsheets/d/12wzscTu7K44OGYXzy1sjW77fPd2x7RmI/export?format=csv&gid=23729576"
+    try:
+        df = pd.read_csv(url, skiprows=13, header=None, encoding='utf-8')
+        equipos = []
+        for index, row in df.iterrows():
+            codigo = str(row[1]).strip()
+            if pd.isna(codigo) or codigo == 'nan' or not codigo:
+                continue
+                
+            descripcion = str(row[2]).strip()
+            fecha_str = str(row[7]).strip()
+            ubicacion = str(row[10]).strip()
+            status = str(row[13]).strip()
+            
+            try:
+                # Formato M/D/YYYY a YYYY-MM-DD
+                fecha_obj = datetime.strptime(fecha_str, "%m/%d/%Y")
+                fecha_formateada = fecha_obj.strftime("%Y-%m-%d")
+            except:
+                fecha_formateada = fecha_str
+                
+            equipos.append({
+                "codigo": codigo,
+                "descripcion": descripcion,
+                "proxima_calibracion": fecha_formateada,
+                "ubicacion": ubicacion,
+                "status": status
+            })
+        return equipos
+    except Exception as e:
+        return []
 
-# --- Lógica de Equipos ---
-EQUIPMENT_DATA = [
-    {"codigo": "IP-ACP7E-018", "descripcion": "Maquina Universal", "proxima_calibracion": "2027-10-06", "status": "Activo"},
-    {"codigo": "IP-ACP17-044", "descripcion": "Madejero", "proxima_calibracion": "2026-10-07", "status": "Activo"},
-    {"codigo": "IP-ACP17-001", "descripcion": "Vernier Mitutoyo 6\"", "proxima_calibracion": "2027-05-05", "status": "Activo"},
-    {"codigo": "IP-ACP17-014", "descripcion": "Durómetro Shore D", "proxima_calibracion": "2026-07-16", "status": "Activo"},
-    {"codigo": "IP-ACP17-016", "descripcion": "Vernier de garganta marca Mitutoyo", "proxima_calibracion": "2026-04-20", "status": "FUERA DE SERVICIO"},
-    {"codigo": "IP-ACP7E-027", "descripcion": "Manómetro Digital Additel", "proxima_calibracion": "2026-11-05", "status": "Activo"},
-    {"codigo": "IP-ACP7E-034", "descripcion": "Goniómetro", "proxima_calibracion": "2027-01-07", "status": "Activo"},
-    {"codigo": "IP-ACP7E-037", "descripcion": "Regla graduada", "proxima_calibracion": "2026-11-04", "status": "Activo"},
-    {"codigo": "IP-ACP7E-040", "descripcion": "Proyectil para pruebas de impacto 2.5 Kg", "proxima_calibracion": "2026-07-12", "status": "Activo"},
-    {"codigo": "IP-ACP7E-043", "descripcion": "Termómetro IR Fluke", "proxima_calibracion": "2027-03-30", "status": "Activo"},
-    {"codigo": "IP-ACP17-048", "descripcion": "Bascula electrónica", "proxima_calibracion": "2027-02-24", "status": "Activo"},
-    {"codigo": "IP-ACP17-049", "descripcion": "Termómetro digital fluke", "proxima_calibracion": "2027-01-13", "status": "Activo"},
-    {"codigo": "IP-ACP17-050", "descripcion": "Calibrador vernier tipo garganta", "proxima_calibracion": "2027-04-02", "status": "Activo"},
-    {"codigo": "IP-ACP7E-051", "descripcion": "Calibrador vernier tipo garganta", "proxima_calibracion": "2026-07-24", "status": "Activo"},
-    {"codigo": "IP-ACP7E-052", "descripcion": "Regla graduada", "proxima_calibracion": "2026-05-23", "status": "Activo"},
-    {"codigo": "IP-ACP17-053", "descripcion": "Cronómetro", "proxima_calibracion": "2026-05-26", "status": "Activo"},
-    {"codigo": "IP-ACP17-056", "descripcion": "Recipiente cilindrico 100 cc", "proxima_calibracion": "2026-05-26", "status": "Activo"},
-    {"codigo": "IP-ACP7E-060", "descripcion": "Dardo de 3.35 Kg", "proxima_calibracion": "2026-06-09", "status": "Activo"},
-    {"codigo": "IP-ACP17-062", "descripcion": "Calibrador Vernier", "proxima_calibracion": "2027-01-13", "status": "Activo"},
-    {"codigo": "IP-ACP17-068", "descripcion": "CALIBRADOR VERNIER", "proxima_calibracion": "2026-07-18", "status": "Activo"},
-    {"codigo": "IP-ACP17-064", "descripcion": "Durómetro Shore D", "proxima_calibracion": "2026-06-23", "status": "Activo"},
-    {"codigo": "IP-ACP7E-038", "descripcion": "CALIBRADOR VERNIER", "proxima_calibracion": "2026-06-10", "status": "Activo"},
-    {"codigo": "IP-ACP17-069", "descripcion": "Horno", "proxima_calibracion": "2027-02-12", "status": "En proceso de verificación"},
-    {"codigo": "IP-ACP17-065", "descripcion": "Maquina de aplastamiento", "proxima_calibracion": "N/A", "status": "FUERA DE SERVICIO"},
-    {"codigo": "IP-ACP17-066", "descripcion": "Maquina de temperatura VICAT", "proxima_calibracion": "N/A", "status": "FUERA DE SERVICIO"},
-    {"codigo": "IP-ACP17-067", "descripcion": "Maquina de impacto izod", "proxima_calibracion": "N/A", "status": "FUERA DE SERVICIO"},
-    {"codigo": "IP-ACP17-070", "descripcion": "BAÑO MARIA", "proxima_calibracion": "N/A", "status": "FUERA DE SERVICIO"},
-    {"codigo": "IP-ACP17-071", "descripcion": "Maquina suajadora", "proxima_calibracion": "N/A", "status": "FUERA DE SERVICIO"},
-]
+EQUIPMENT_DATA = cargar_equipos()
 
 def verificar_equipos(dias_aviso=30):
     hoy = datetime.now().date()
@@ -126,6 +129,13 @@ def verificar_equipos(dias_aviso=30):
             pass
             
     return vencidos, por_vencer
+
+st.title("Cálculos de tubos de perfileria")
+
+# Mostrar Alerta Global (7 días) justo después del título
+equipos_global_vencidos, equipos_global_por_vencer = verificar_equipos(dias_aviso=7)
+if equipos_global_vencidos or equipos_global_por_vencer:
+    st.warning("⚠️ **ATENCIÓN:** Tienes equipos de medición vencidos o por vencer en los próximos 7 días. Revisa la pestaña de 'Equipos de medición'.")
 
 # Datos de referencia para CPVC
 REFERENCE_DATA_CPVC = {
@@ -407,7 +417,8 @@ with tab_equipos:
     # Crear un DataFrame para mostrar en una tabla
     df_equipos = pd.DataFrame(EQUIPMENT_DATA)
     # Renombrar columnas para la tabla
-    df_equipos.columns = ["Código", "Descripción", "Próxima Calibración", "Status"]
+    if not df_equipos.empty:
+        df_equipos.columns = ["Código", "Descripción", "Próxima Calibración", "Ubicación", "Status"]
     
     # Mostrar tabla interactiva
     st.dataframe(df_equipos, use_container_width=True, hide_index=True)
