@@ -39,6 +39,10 @@ st.markdown(f"""
 
 st.markdown("""
     <style>
+    /* Permite el comportamiento nativo de "Pull to refresh" (jalar para recargar) en móviles */
+    body, html, .stApp {
+        overscroll-behavior-y: auto !important;
+    }
     .big-title {
         font-size: 3rem !important;
         font-weight: 800 !important;
@@ -105,6 +109,12 @@ def cargar_equipos():
         return equipos
     except Exception as e:
         return []
+
+# Si es una nueva sesión (cuando el usuario recarga jalando hacia abajo),
+# borramos el caché para que descargue los datos frescos de Google Sheets.
+if "app_iniciada" not in st.session_state:
+    st.session_state["app_iniciada"] = True
+    cargar_equipos.clear()
 
 EQUIPMENT_DATA = cargar_equipos()
 
