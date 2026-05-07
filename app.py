@@ -75,29 +75,34 @@ st.title("Cálculos de tubos de perfileria")
 
 # --- Lógica de Equipos ---
 EQUIPMENT_DATA = [
-    {"codigo": "IP-ACP7E-018", "descripcion": "Maquina Universal", "proxima_calibracion": "2027-10-06"},
-    {"codigo": "IP-ACP17-044", "descripcion": "Madejero", "proxima_calibracion": "2026-10-07"},
-    {"codigo": "IP-ACP17-001", "descripcion": "Vernier Mitutoyo 6\"", "proxima_calibracion": "2027-05-05"},
-    {"codigo": "IP-ACP17-014", "descripcion": "Durómetro Shore D", "proxima_calibracion": "2026-07-16"},
-    {"codigo": "IP-ACP17-016", "descripcion": "Vernier de garganta marca Mitutoyo", "proxima_calibracion": "2026-04-20"},
-    {"codigo": "IP-ACP7E-027", "descripcion": "Manómetro Digital Additel", "proxima_calibracion": "2026-11-05"},
-    {"codigo": "IP-ACP7E-034", "descripcion": "Goniómetro", "proxima_calibracion": "2027-01-07"},
-    {"codigo": "IP-ACP7E-037", "descripcion": "Regla graduada", "proxima_calibracion": "2026-11-04"},
-    {"codigo": "IP-ACP7E-040", "descripcion": "Proyectil para pruebas de impacto 2.5 Kg", "proxima_calibracion": "2026-07-12"},
-    {"codigo": "IP-ACP7E-043", "descripcion": "Termómetro IR Fluke", "proxima_calibracion": "2027-03-30"},
-    {"codigo": "IP-ACP17-048", "descripcion": "Bascula electrónica", "proxima_calibracion": "2027-02-24"},
-    {"codigo": "IP-ACP17-049", "descripcion": "Termómetro digital fluke", "proxima_calibracion": "2027-01-13"},
-    {"codigo": "IP-ACP17-050", "descripcion": "Calibrador vernier tipo garganta", "proxima_calibracion": "2027-04-02"},
-    {"codigo": "IP-ACP7E-051", "descripcion": "Calibrador vernier tipo garganta", "proxima_calibracion": "2026-07-24"},
-    {"codigo": "IP-ACP7E-052", "descripcion": "Regla graduada", "proxima_calibracion": "2026-05-23"},
-    {"codigo": "IP-ACP17-053", "descripcion": "Cronómetro", "proxima_calibracion": "2026-05-26"},
-    {"codigo": "IP-ACP17-056", "descripcion": "Recipiente cilindrico 100 cc", "proxima_calibracion": "2026-05-26"},
-    {"codigo": "IP-ACP7E-060", "descripcion": "Dardo de 3.35 Kg", "proxima_calibracion": "2026-06-09"},
-    {"codigo": "IP-ACP17-062", "descripcion": "Calibrador Vernier", "proxima_calibracion": "2027-01-13"},
-    {"codigo": "IP-ACP17-068", "descripcion": "CALIBRADOR VERNIER", "proxima_calibracion": "2026-07-18"},
-    {"codigo": "IP-ACP17-064", "descripcion": "Durómetro Shore D", "proxima_calibracion": "2026-06-23"},
-    {"codigo": "IP-ACP7E-038", "descripcion": "CALIBRADOR VERNIER", "proxima_calibracion": "2026-06-10"},
-    {"codigo": "IP-ACP17-069", "descripcion": "Horno", "proxima_calibracion": "2027-02-12"},
+    {"codigo": "IP-ACP7E-018", "descripcion": "Maquina Universal", "proxima_calibracion": "2027-10-06", "status": "Activo"},
+    {"codigo": "IP-ACP17-044", "descripcion": "Madejero", "proxima_calibracion": "2026-10-07", "status": "Activo"},
+    {"codigo": "IP-ACP17-001", "descripcion": "Vernier Mitutoyo 6\"", "proxima_calibracion": "2027-05-05", "status": "Activo"},
+    {"codigo": "IP-ACP17-014", "descripcion": "Durómetro Shore D", "proxima_calibracion": "2026-07-16", "status": "Activo"},
+    {"codigo": "IP-ACP17-016", "descripcion": "Vernier de garganta marca Mitutoyo", "proxima_calibracion": "2026-04-20", "status": "FUERA DE SERVICIO"},
+    {"codigo": "IP-ACP7E-027", "descripcion": "Manómetro Digital Additel", "proxima_calibracion": "2026-11-05", "status": "Activo"},
+    {"codigo": "IP-ACP7E-034", "descripcion": "Goniómetro", "proxima_calibracion": "2027-01-07", "status": "Activo"},
+    {"codigo": "IP-ACP7E-037", "descripcion": "Regla graduada", "proxima_calibracion": "2026-11-04", "status": "Activo"},
+    {"codigo": "IP-ACP7E-040", "descripcion": "Proyectil para pruebas de impacto 2.5 Kg", "proxima_calibracion": "2026-07-12", "status": "Activo"},
+    {"codigo": "IP-ACP7E-043", "descripcion": "Termómetro IR Fluke", "proxima_calibracion": "2027-03-30", "status": "Activo"},
+    {"codigo": "IP-ACP17-048", "descripcion": "Bascula electrónica", "proxima_calibracion": "2027-02-24", "status": "Activo"},
+    {"codigo": "IP-ACP17-049", "descripcion": "Termómetro digital fluke", "proxima_calibracion": "2027-01-13", "status": "Activo"},
+    {"codigo": "IP-ACP17-050", "descripcion": "Calibrador vernier tipo garganta", "proxima_calibracion": "2027-04-02", "status": "Activo"},
+    {"codigo": "IP-ACP7E-051", "descripcion": "Calibrador vernier tipo garganta", "proxima_calibracion": "2026-07-24", "status": "Activo"},
+    {"codigo": "IP-ACP7E-052", "descripcion": "Regla graduada", "proxima_calibracion": "2026-05-23", "status": "Activo"},
+    {"codigo": "IP-ACP17-053", "descripcion": "Cronómetro", "proxima_calibracion": "2026-05-26", "status": "Activo"},
+    {"codigo": "IP-ACP17-056", "descripcion": "Recipiente cilindrico 100 cc", "proxima_calibracion": "2026-05-26", "status": "Activo"},
+    {"codigo": "IP-ACP7E-060", "descripcion": "Dardo de 3.35 Kg", "proxima_calibracion": "2026-06-09", "status": "Activo"},
+    {"codigo": "IP-ACP17-062", "descripcion": "Calibrador Vernier", "proxima_calibracion": "2027-01-13", "status": "Activo"},
+    {"codigo": "IP-ACP17-068", "descripcion": "CALIBRADOR VERNIER", "proxima_calibracion": "2026-07-18", "status": "Activo"},
+    {"codigo": "IP-ACP17-064", "descripcion": "Durómetro Shore D", "proxima_calibracion": "2026-06-23", "status": "Activo"},
+    {"codigo": "IP-ACP7E-038", "descripcion": "CALIBRADOR VERNIER", "proxima_calibracion": "2026-06-10", "status": "Activo"},
+    {"codigo": "IP-ACP17-069", "descripcion": "Horno", "proxima_calibracion": "2027-02-12", "status": "En proceso de verificación"},
+    {"codigo": "IP-ACP17-065", "descripcion": "Maquina de aplastamiento", "proxima_calibracion": "N/A", "status": "FUERA DE SERVICIO"},
+    {"codigo": "IP-ACP17-066", "descripcion": "Maquina de temperatura VICAT", "proxima_calibracion": "N/A", "status": "FUERA DE SERVICIO"},
+    {"codigo": "IP-ACP17-067", "descripcion": "Maquina de impacto izod", "proxima_calibracion": "N/A", "status": "FUERA DE SERVICIO"},
+    {"codigo": "IP-ACP17-070", "descripcion": "BAÑO MARIA", "proxima_calibracion": "N/A", "status": "FUERA DE SERVICIO"},
+    {"codigo": "IP-ACP17-071", "descripcion": "Maquina suajadora", "proxima_calibracion": "N/A", "status": "FUERA DE SERVICIO"},
 ]
 
 def verificar_equipos(dias_aviso=30):
@@ -106,6 +111,9 @@ def verificar_equipos(dias_aviso=30):
     por_vencer = []
     
     for equipo in EQUIPMENT_DATA:
+        if equipo.get("status") == "FUERA DE SERVICIO":
+            continue
+            
         try:
             fecha_cal = datetime.strptime(equipo["proxima_calibracion"], "%Y-%m-%d").date()
             dias_restantes = (fecha_cal - hoy).days
@@ -118,18 +126,6 @@ def verificar_equipos(dias_aviso=30):
             pass
             
     return vencidos, por_vencer
-
-# --- Alertas de Calibración ---
-vencidos, por_vencer = verificar_equipos(dias_aviso=30)
-if vencidos or por_vencer:
-    total_alertas = len(vencidos) + len(por_vencer)
-    with st.expander(f"🔔 Alertas de Calibración ({total_alertas} equipos requieren atención)", expanded=bool(vencidos)):
-        if vencidos:
-            for eq, dias in vencidos:
-                st.error(f"🔴 **VENCIDO ({abs(dias)} días):** {eq['descripcion']} ({eq['codigo']}) - Venció el {eq['proxima_calibracion']}")
-        if por_vencer:
-            for eq, dias in por_vencer:
-                st.warning(f"🟡 **POR VENCER (en {dias} días):** {eq['descripcion']} ({eq['codigo']}) - Vence el {eq['proxima_calibracion']}")
 
 # Datos de referencia para CPVC
 REFERENCE_DATA_CPVC = {
@@ -324,7 +320,7 @@ def render_tab(reglas, tab_key, validar_espesor_individual=True):
                 st.success("✨ ¡Excelente! Las mediciones evaluadas cumplen con la norma.")
 
 # --- Tab Layout ---
-tab_cpvc, tab_estante, tab_pvc, tab_pvc_rd, tab_ppr, tab_cespol, tab_rafia = st.tabs(["CPVC", "Tubo de Estante", "PVC Cédula 40", "PVC RD", "PPR", "Tubo de Céspol", "Rafia"])
+tab_cpvc, tab_estante, tab_pvc, tab_pvc_rd, tab_ppr, tab_cespol, tab_rafia, tab_equipos = st.tabs(["CPVC", "Tubo de Estante", "PVC Cédula 40", "PVC RD", "PPR", "Tubo de Céspol", "Rafia", "Equipos de medición"])
 
 with tab_cpvc:
     clave = st.selectbox("📌 Seleccione Clave:", list(REFERENCE_DATA_CPVC.keys()), key="sel_cpvc")
@@ -386,3 +382,32 @@ with tab_rafia:
                 st.markdown(f"<div class='rafia-card'><div class='rafia-title'>Denier</div><div class='rafia-value'>{denier:.0f}</div></div>", unsafe_allow_html=True)
         else:
             st.warning("⚠️ Ingresa un peso válido para calcular.")
+
+with tab_equipos:
+    st.header("Control de Equipos de Medición")
+    
+    # Mostrar alertas en la parte superior de la pestaña
+    vencidos, por_vencer = verificar_equipos(dias_aviso=30)
+    if vencidos or por_vencer:
+        total_alertas = len(vencidos) + len(por_vencer)
+        with st.container():
+            st.subheader(f"🔔 Alertas ({total_alertas})")
+            if vencidos:
+                for eq, dias in vencidos:
+                    st.error(f"🔴 **VENCIDO ({abs(dias)} días):** {eq['descripcion']} ({eq['codigo']}) - Venció el {eq['proxima_calibracion']}")
+            if por_vencer:
+                for eq, dias in por_vencer:
+                    st.warning(f"🟡 **POR VENCER (en {dias} días):** {eq['descripcion']} ({eq['codigo']}) - Vence el {eq['proxima_calibracion']}")
+    else:
+        st.success("✅ Todos los equipos activos están al día con su calibración.")
+        
+    st.markdown("---")
+    st.subheader("Inventario de Equipos")
+    
+    # Crear un DataFrame para mostrar en una tabla
+    df_equipos = pd.DataFrame(EQUIPMENT_DATA)
+    # Renombrar columnas para la tabla
+    df_equipos.columns = ["Código", "Descripción", "Próxima Calibración", "Status"]
+    
+    # Mostrar tabla interactiva
+    st.dataframe(df_equipos, use_container_width=True, hide_index=True)
