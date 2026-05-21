@@ -1,6 +1,19 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
+import threading
+import requests
+import json
+
+# --- Configuración Base de Datos Invisible ---
+WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbzKz2I-_NrWneexvxl6D78NELPu0An1YpDXsYgwsRf28L1LgLoycRFe8vB0d2RY6bTrug/exec"
+
+def enviar_a_google_sheets(datos):
+    try:
+        if WEBHOOK_URL != "TU_LINK_AQUI":
+            requests.post(WEBHOOK_URL, json=datos, timeout=5)
+    except Exception:
+        pass # Falla silenciosamente para no interrumpir al usuario
 
 # Configuración de la página
 st.set_page_config(page_title='Cálculos de tubos de perfileria', page_icon='https://raw.githubusercontent.com/juandiegoruedajoc-dev/control-calidad-truper/main/logotipo%20de%20truper.png', layout='wide', initial_sidebar_state='collapsed')
@@ -221,7 +234,7 @@ def limpiar_rafia():
     if "peso_rafia" in st.session_state:
         st.session_state["peso_rafia"] = None
 
-def render_tab(reglas, tab_key, validar_espesor_individual=True, min_aplastamiento=None):
+def render_tab(reglas, tab_key, validar_espesor_individual=True, min_aplastamiento=None, nombre_tubo="Desconocido"):
     base_diam = int(reglas['diam_min'])
     base_esp = int(reglas['esp_min'])
     
@@ -372,6 +385,7 @@ def render_tab(reglas, tab_key, validar_espesor_individual=True, min_aplastamien
                 cols[3].metric("Aplastamiento Prom.", f"{prom_aplastamiento:.1f}%")
 
             # Mostrar los cuadros GRANDE en base al resultado
+            dictamen_final = "RECHAZADO" if fallos else "PASADO"
             if fallos:
                 st.error("<div class='big-title'>RECHAZADO</div>", icon="🚫")
                 st.error("#### Motivos de Falla:")
@@ -380,6 +394,21 @@ def render_tab(reglas, tab_key, validar_espesor_individual=True, min_aplastamien
             else:
                 st.success("<div class='big-title'>PASADO</div>", icon="✅")
                 st.success("✨ ¡Excelente! Las mediciones evaluadas cumplen con la norma.")
+                
+            # Guardado invisible en Google Sheets
+            datos_registro = {
+                "fecha": datetime.now().strftime("%d/%m/%Y"),
+                "hora": datetime.now().strftime("%H:%M:%S"),
+                "tipo": tab_key.upper(),
+                "clave": nombre_tubo,
+                "prom_diam": f"{prom_diam:.2f}" if prom_diam is not None else "",
+                "ovalidad": f"{ovalidad:.2f}" if ovalidad is not None else "",
+                "prom_esp": f"{prom_esp:.2f}" if prom_esp is not None else "",
+                "aplastamiento": f"{prom_aplastamiento:.1f}%" if prom_aplastamiento is not None else "",
+                "resultado": dictamen_final,
+                "motivos": " | ".join(fallos).replace("**", "") if fallos else "Ninguno"
+            }
+            threading.Thread(target=enviar_a_google_sheets, args=(datos_registro,)).start()
 
 # --- Tab Layout ---
 tab_cpvc, tab_estante, tab_pvc, tab_pvc_rd, tab_ppr, tab_cespol, tab_rafia, tab_equipos = st.tabs(["CPVC", "Tubo de Estante", "PVC Cédula 40", "PVC RD", "PPR", "Tubo de Céspol", "Rafia", "Equipos de medición"])
@@ -387,33 +416,33 @@ tab_cpvc, tab_estante, tab_pvc, tab_pvc_rd, tab_ppr, tab_cespol, tab_rafia, tab_
 with tab_cpvc:
     clave = st.selectbox("📌 Seleccione Clave:", list(REFERENCE_DATA_CPVC.keys()), key="sel_cpvc")
     st.divider()
-    render_tab(REFERENCE_DATA_CPVC[clave], "cpvc", min_aplastamiento=80)
+    render_tab(REFERENCE_DATA_CPVC[clave], "cpvc", min_aplastamiento=80, nombre_tubo=clave)
 
 with tab_estante:
     st.markdown("#### 📌 Especificaciones Fijas: Tubo de Estante")
     st.divider()
-    render_tab(REGLAS_TUBO, "tubo")
+    render_tab(REGLAS_TUBO, "tubo", nombre_tubo="Tubo de Estante")
 
 with tab_pvc:
     clave_pvc = st.selectbox("📌 Seleccione Clave:", list(REFERENCE_DATA_PVC.keys()), key="sel_pvc")
     st.divider()
-    render_tab(REFERENCE_DATA_PVC[clave_pvc], "pvc", min_aplastamiento=60)
+    render_tab(REFERENCE_DATA_PVC[clave_pvc], "pvc", min_aplastamiento=60, nombre_tubo=clave_pvc)
 
 with tab_pvc_rd:
     clave_pvc_rd = st.selectbox("📌 Seleccione Clave:", list(REFERENCE_DATA_PVC_RD.keys()), key="sel_pvc_rd")
     st.divider()
-    render_tab(REFERENCE_DATA_PVC_RD[clave_pvc_rd], "pvc_rd", min_aplastamiento=60)
+    render_tab(REFERENCE_DATA_PVC_RD[clave_pvc_rd], "pvc_rd", min_aplastamiento=60, nombre_tubo=clave_pvc_rd)
 
 with tab_ppr:
     clave_ppr = st.selectbox("📌 Seleccione Clave:", list(REFERENCE_DATA_PPR.keys()), key="sel_ppr")
     st.divider()
     # PPR no valida cada espesor individual
-    render_tab(REFERENCE_DATA_PPR[clave_ppr], "ppr", validar_espesor_individual=False)
+    render_tab(REFERENCE_DATA_PPR[clave_ppr], "ppr", validar_espesor_individual=False, nombre_tubo=clave_ppr)
 
 with tab_cespol:
     clave_cespol = st.selectbox("📌 Seleccione Clave:", list(REFERENCE_DATA_CESPOL.keys()), key="sel_cespol")
     st.divider()
-    render_tab(REFERENCE_DATA_CESPOL[clave_cespol], "cespol")
+    render_tab(REFERENCE_DATA_CESPOL[clave_cespol], "cespol", nombre_tubo=clave_cespol)
 
 with tab_rafia:
     st.markdown("#### 📌 Especificaciones de Rafia")
