@@ -288,21 +288,21 @@ def render_tab(reglas, tab_key, validar_espesor_individual=True, min_aplastamien
     
     aplastamiento_inputs = []
     if min_aplastamiento is not None:
-        st.markdown(f"#### 💥 Prueba de Aplastamiento (Mínimo requerido: > {min_aplastamiento}%)")
-        col_a1, col_a2, col_a3 = st.columns(3)
-        for i, col in enumerate([col_a1, col_a2, col_a3]):
-            with col:
-                with st.container(border=True):
-                    st.markdown(f"**Probeta {i+1}**")
-                    ai = st.number_input("Ai (Inicial)", value=None, format="%.2f", step=0.1, key=f"ai_{i}_{tab_key}")
-                    af = st.number_input("AF (Final)", value=None, format="%.2f", step=0.1, key=f"af_{i}_{tab_key}")
-                    esp1 = st.number_input("Esp1", value=None, format="%.2f", step=0.1, key=f"esp1_{i}_{tab_key}")
-                    esp2 = st.number_input("Esp2", value=None, format="%.2f", step=0.1, key=f"esp2_{i}_{tab_key}")
-                    if all(x is not None for x in [ai, af, esp1, esp2]) and ai > 0:
-                        x_val = (af - esp1 - esp2) / ai
-                        pct = (1 - x_val) * 100
-                        aplastamiento_inputs.append(pct)
-                        st.info(f"Resultado: {pct:.1f}%")
+        with st.expander(f"💥 Prueba de Aplastamiento (Opcional - Mínimo requerido: > {min_aplastamiento}%)"):
+            col_a1, col_a2, col_a3 = st.columns(3)
+            for i, col in enumerate([col_a1, col_a2, col_a3]):
+                with col:
+                    with st.container(border=True):
+                        st.markdown(f"**Probeta {i+1}**")
+                        ai = st.number_input("Ai (Inicial)", value=None, format="%.2f", step=0.1, key=f"ai_{i}_{tab_key}")
+                        af = st.number_input("AF (Final)", value=None, format="%.2f", step=0.1, key=f"af_{i}_{tab_key}")
+                        esp1 = st.number_input("Esp1", value=None, format="%.2f", step=0.1, key=f"esp1_{i}_{tab_key}")
+                        esp2 = st.number_input("Esp2", value=None, format="%.2f", step=0.1, key=f"esp2_{i}_{tab_key}")
+                        if all(x is not None for x in [ai, af, esp1, esp2]) and ai > 0:
+                            x_val = (af - esp1 - esp2) / ai
+                            pct = (1 - x_val) * 100
+                            aplastamiento_inputs.append(pct)
+                            st.info(f"Resultado: {pct:.1f}%")
         st.divider()
 
     col_btns1, col_btns2 = st.columns([3, 1])
@@ -401,10 +401,10 @@ def render_tab(reglas, tab_key, validar_espesor_individual=True, min_aplastamien
                 "hora": datetime.now().strftime("%H:%M:%S"),
                 "tipo": tab_key.upper(),
                 "clave": nombre_tubo,
-                "prom_diam": f"{prom_diam:.2f}" if prom_diam is not None else "",
-                "ovalidad": f"{ovalidad:.2f}" if ovalidad is not None else "",
-                "prom_esp": f"{prom_esp:.2f}" if prom_esp is not None else "",
-                "aplastamiento": f"{prom_aplastamiento:.1f}%" if prom_aplastamiento is not None else "",
+                "prom_diam": f"{prom_diam:.2f}" if prom_diam is not None else "NA",
+                "ovalidad": f"{ovalidad:.2f}" if ovalidad is not None else "NA",
+                "prom_esp": f"{prom_esp:.2f}" if prom_esp is not None else "NA",
+                "aplastamiento": f"{prom_aplastamiento:.1f}%" if prom_aplastamiento is not None else "NA",
                 "resultado": dictamen_final,
                 "motivos": " | ".join(fallos).replace("**", "") if fallos else "Ninguno"
             }
