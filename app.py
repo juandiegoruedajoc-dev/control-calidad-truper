@@ -288,7 +288,7 @@ def render_tab(reglas, tab_key, validar_espesor_individual=True, min_aplastamien
     
     aplastamiento_inputs = []
     if min_aplastamiento is not None:
-        with st.expander(f"💥 Prueba de Aplastamiento (Opcional - Mínimo requerido: > {min_aplastamiento}%)"):
+        with st.expander(f"💥 Prueba de Aplastamiento (Mínimo requerido: > {min_aplastamiento}%)"):
             col_a1, col_a2, col_a3 = st.columns(3)
             for i, col in enumerate([col_a1, col_a2, col_a3]):
                 with col:
