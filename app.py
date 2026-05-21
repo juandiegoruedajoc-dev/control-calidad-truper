@@ -203,20 +203,25 @@ REFERENCE_DATA_CESPOL = {
 }
 
 def limpiar_campos(tab_key):
+    keys_to_clear = []
     for key in ["d1", "d2", "d3", "d4", "e1", "e2", "e3", "e4"]:
-        for prefix in ["", "int_", "man_", "chk_"]:
-            full_key = f"{prefix}{key}_{tab_key}"
-            if full_key in st.session_state:
-                if prefix == "chk_":
-                    st.session_state[full_key] = False
-                else:
-                    st.session_state[full_key] = None
+        keys_to_clear.extend([key, f"int_{key}", f"man_{key}", f"chk_{key}"])
+    for i in range(3):
+        keys_to_clear.extend([f"ai_{i}", f"af_{i}", f"esp1_{i}", f"esp2_{i}"])
+        
+    for k in keys_to_clear:
+        full_key = f"{k}_{tab_key}"
+        if full_key in st.session_state:
+            if full_key.startswith("chk_"):
+                st.session_state[full_key] = False
+            else:
+                st.session_state[full_key] = None
 
 def limpiar_rafia():
     if "peso_rafia" in st.session_state:
         st.session_state["peso_rafia"] = None
 
-def render_tab(reglas, tab_key, validar_espesor_individual=True):
+def render_tab(reglas, tab_key, validar_espesor_individual=True, min_aplastamiento=None):
     base_diam = int(reglas['diam_min'])
     base_esp = int(reglas['esp_min'])
     
@@ -267,6 +272,25 @@ def render_tab(reglas, tab_key, validar_espesor_individual=True):
         e4 = create_input_card("E4", "e4", base_esp)
 
     st.divider()
+    
+    aplastamiento_inputs = []
+    if min_aplastamiento is not None:
+        st.markdown(f"#### 💥 Prueba de Aplastamiento (Mínimo requerido: > {min_aplastamiento}%)")
+        col_a1, col_a2, col_a3 = st.columns(3)
+        for i, col in enumerate([col_a1, col_a2, col_a3]):
+            with col:
+                with st.container(border=True):
+                    st.markdown(f"**Probeta {i+1}**")
+                    ai = st.number_input("Ai (Inicial)", value=None, format="%.2f", step=0.1, key=f"ai_{i}_{tab_key}")
+                    af = st.number_input("AF (Final)", value=None, format="%.2f", step=0.1, key=f"af_{i}_{tab_key}")
+                    esp1 = st.number_input("Esp1", value=None, format="%.2f", step=0.1, key=f"esp1_{i}_{tab_key}")
+                    esp2 = st.number_input("Esp2", value=None, format="%.2f", step=0.1, key=f"esp2_{i}_{tab_key}")
+                    if all(x is not None for x in [ai, af, esp1, esp2]) and ai > 0:
+                        x_val = (af - esp1 - esp2) / ai
+                        pct = (1 - x_val) * 100
+                        aplastamiento_inputs.append(pct)
+                        st.info(f"Resultado: {pct:.1f}%")
+        st.divider()
 
     col_btns1, col_btns2 = st.columns([3, 1])
     with col_btns1:
@@ -281,7 +305,10 @@ def render_tab(reglas, tab_key, validar_espesor_individual=True):
         diams_filled = [d for d in diams_raw if d is not None]
         esps_filled = [e for e in esps_raw if e is not None]
         
-        if len(diams_filled) == 0 and len(esps_filled) == 0:
+        hay_datos_principales = len(diams_filled) > 0 or len(esps_filled) > 0
+        hay_aplastamiento = len(aplastamiento_inputs) > 0
+        
+        if not hay_datos_principales and not hay_aplastamiento:
             st.warning("⚠️ No has ingresado ninguna medición para evaluar.")
         else:
             fallos = []
@@ -318,16 +345,31 @@ def render_tab(reglas, tab_key, validar_espesor_individual=True):
                         for i, esp in enumerate(esps_filled):
                             if not (reglas["esp_min"] <= esp <= reglas["esp_max"]):
                                 fallos.append(f"**Espesor {i+1} individual** ({esp:.2f} mm) crítico fuera de rango ({reglas['esp_min']:.2f} a {reglas['esp_max']:.2f})")
+                                
+            prom_aplastamiento = None
+            if min_aplastamiento is not None:
+                if len(aplastamiento_inputs) > 0:
+                    if len(aplastamiento_inputs) < 3:
+                        fallos.append("⚠️ Faltan datos en la prueba de Aplastamiento (requiere 3 probetas).")
+                    else:
+                        prom_aplastamiento = sum(aplastamiento_inputs) / len(aplastamiento_inputs)
+                        if prom_aplastamiento <= min_aplastamiento:
+                            fallos.append(f"**Aplastamiento Promedio** ({prom_aplastamiento:.1f}%) no cumple el mínimo requerido (> {min_aplastamiento}%).")
+                        for i, pct in enumerate(aplastamiento_inputs):
+                            if pct <= min_aplastamiento:
+                                fallos.append(f"**Aplastamiento Probeta {i+1}** ({pct:.1f}%) no cumple el mínimo requerido (> {min_aplastamiento}%).")
                             
             st.divider()
             st.write("### 📝 Datos Calculados")
             
-            cols = st.columns(3)
+            cols = st.columns(4)
             if prom_diam is not None:
                 cols[0].metric("Diámetro Promedio", f"{prom_diam:.2f} mm")
                 cols[1].metric("Ovalidad Calculada", f"{ovalidad:.2f} mm")
             if prom_esp is not None:
                 cols[2].metric("Espesor Promedio", f"{prom_esp:.2f} mm")
+            if prom_aplastamiento is not None:
+                cols[3].metric("Aplastamiento Prom.", f"{prom_aplastamiento:.1f}%")
 
             # Mostrar los cuadros GRANDE en base al resultado
             if fallos:
@@ -345,7 +387,7 @@ tab_cpvc, tab_estante, tab_pvc, tab_pvc_rd, tab_ppr, tab_cespol, tab_rafia, tab_
 with tab_cpvc:
     clave = st.selectbox("📌 Seleccione Clave:", list(REFERENCE_DATA_CPVC.keys()), key="sel_cpvc")
     st.divider()
-    render_tab(REFERENCE_DATA_CPVC[clave], "cpvc")
+    render_tab(REFERENCE_DATA_CPVC[clave], "cpvc", min_aplastamiento=80)
 
 with tab_estante:
     st.markdown("#### 📌 Especificaciones Fijas: Tubo de Estante")
@@ -355,12 +397,12 @@ with tab_estante:
 with tab_pvc:
     clave_pvc = st.selectbox("📌 Seleccione Clave:", list(REFERENCE_DATA_PVC.keys()), key="sel_pvc")
     st.divider()
-    render_tab(REFERENCE_DATA_PVC[clave_pvc], "pvc")
+    render_tab(REFERENCE_DATA_PVC[clave_pvc], "pvc", min_aplastamiento=60)
 
 with tab_pvc_rd:
     clave_pvc_rd = st.selectbox("📌 Seleccione Clave:", list(REFERENCE_DATA_PVC_RD.keys()), key="sel_pvc_rd")
     st.divider()
-    render_tab(REFERENCE_DATA_PVC_RD[clave_pvc_rd], "pvc_rd")
+    render_tab(REFERENCE_DATA_PVC_RD[clave_pvc_rd], "pvc_rd", min_aplastamiento=60)
 
 with tab_ppr:
     clave_ppr = st.selectbox("📌 Seleccione Clave:", list(REFERENCE_DATA_PPR.keys()), key="sel_ppr")
@@ -405,6 +447,38 @@ with tab_rafia:
 
 with tab_equipos:
     st.header("Control de Equipos de Medición")
+    
+    # Recordatorio Inteligente WhatsApp (Lunes = 0)
+    import urllib.parse
+    if datetime.now().weekday() == 0:
+        if "wa_enviado_hoy" not in st.session_state or st.session_state["wa_enviado_hoy"] != datetime.now().date():
+            st.info("📅 **RECORDATORIO:** Es Lunes. No olvides enviar el reporte de equipos de esta semana.")
+            
+            # Generar texto del mensaje
+            vencidos_tot, por_vencer_tot = verificar_equipos(dias_aviso=30)
+            msg = "*Reporte de Equipos - Control de Calidad*\n"
+            if vencidos_tot:
+                msg += "\n*🔴 Equipos Vencidos:*\n"
+                for eq, _ in vencidos_tot:
+                    msg += f"- {eq['descripcion']} ({eq['codigo']}) - Venció: {eq['proxima_calibracion']}\n"
+            if por_vencer_tot:
+                msg += "\n*🟡 Equipos por Vencer:*\n"
+                for eq, _ in por_vencer_tot:
+                    msg += f"- {eq['descripcion']} ({eq['codigo']}) - Vence: {eq['proxima_calibracion']}\n"
+            if not vencidos_tot and not por_vencer_tot:
+                msg += "\n✅ Todos los equipos están al día."
+                
+            numero_jefe = "525570708905"
+            wa_link = f"https://wa.me/{numero_jefe}?text={urllib.parse.quote(msg)}"
+            
+            col_wa1, col_wa2 = st.columns([2, 1])
+            with col_wa1:
+                st.markdown(f'<a href="{wa_link}" target="_blank" style="display: inline-block; padding: 12px 24px; background-color: #25D366; color: white; text-align: center; text-decoration: none; font-size: 16px; border-radius: 8px; font-weight: bold; width: 100%;">📲 Abrir WhatsApp y Enviar Reporte</a>', unsafe_allow_html=True)
+            with col_wa2:
+                if st.button("✅ Marcar como Enviado", use_container_width=True):
+                    st.session_state["wa_enviado_hoy"] = datetime.now().date()
+                    st.rerun()
+            st.markdown("---")
     
     # Mostrar alertas en la parte superior de la pestaña
     vencidos, por_vencer = verificar_equipos(dias_aviso=30)
