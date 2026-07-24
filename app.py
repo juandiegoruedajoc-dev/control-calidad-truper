@@ -431,7 +431,7 @@ with tab_pvc:
 with tab_pvc_rd:
     clave_pvc_rd = st.selectbox("📌 Seleccione Clave:", list(REFERENCE_DATA_PVC_RD.keys()), key="sel_pvc_rd")
     st.divider()
-    render_tab(REFERENCE_DATA_PVC_RD[clave_pvc_rd], "pvc_rd", min_aplastamiento=60, nombre_tubo=clave_pvc_rd)
+    render_tab(REFERENCE_DATA_PVC_RD[clave_pvc_rd], "pvc_rd", min_aplastamiento=80, nombre_tubo=clave_pvc_rd)
 
 with tab_ppr:
     clave_ppr = st.selectbox("📌 Seleccione Clave:", list(REFERENCE_DATA_PPR.keys()), key="sel_ppr")
