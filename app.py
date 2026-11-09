@@ -4,6 +4,8 @@ from datetime import datetime, timedelta
 import threading
 import requests
 import json
+import base64
+import urllib.parse
 
 # --- Configuración Base de Datos Invisible ---
 WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbzKz2I-_NrWneexvxl6D78NELPu0An1YpDXsYgwsRf28L1LgLoycRFe8vB0d2RY6bTrug/exec"
@@ -16,9 +18,12 @@ def enviar_a_google_sheets(datos):
         pass # Falla silenciosamente para no interrumpir al usuario
 
 # Configuración de la página
-st.set_page_config(page_title='Cálculos de tubos de perfileria', page_icon='https://raw.githubusercontent.com/juandiegoruedajoc-dev/control-calidad-truper/main/logotipo%20de%20truper.png', layout='wide', initial_sidebar_state='collapsed')
-
-import base64
+st.set_page_config(
+    page_title='Cálculos de tubos de perfileria', 
+    page_icon='https://raw.githubusercontent.com/juandiegoruedajoc-dev/control-calidad-truper/main/logotipo%20de%20truper.png', 
+    layout='wide', 
+    initial_sidebar_state='collapsed'
+)
 
 manifest_json = """
 {
@@ -52,7 +57,7 @@ st.markdown(f"""
 
 st.markdown("""
     <style>
-    /* Permite el comportamiento nativo de "Pull to refresh" (jalar para recargar) en móviles */
+    /* Permite el comportamiento nativo de "Pull to refresh" en móviles */
     body, html, .stApp {
         overscroll-behavior-y: auto !important;
     }
@@ -81,36 +86,28 @@ st.markdown("""
         font-weight: 900;
         color: #F0711B;
     }
-    /* Botón flotante de Entrega de Turno */
-    div[data-testid="stFixedBottom"] {
-        background: transparent !important;
-    }
-    .floating-btn-container {
+    /* Estilo del botón flotante de Entrega de Turno */
+    .floating-container {
         position: fixed;
-        bottom: 24px;
-        right: 24px;
+        bottom: 30px;
+        right: 30px;
         z-index: 9999;
     }
-    .floating-btn-container button {
-        background: linear-gradient(135deg, #F0711B, #d45f10) !important;
-        color: white !important;
-        border: none !important;
-        border-radius: 50px !important;
-        padding: 14px 22px !important;
-        font-size: 1.1rem !important;
-        font-weight: 700 !important;
-        box-shadow: 0 6px 20px rgba(240,113,27,0.5) !important;
-        cursor: pointer !important;
-        transition: transform 0.2s, box-shadow 0.2s !important;
+    .floating-btn {
+        background: linear-gradient(135deg, #F0711B, #d45f10);
+        color: white;
+        border: none;
+        border-radius: 50px;
+        padding: 14px 24px;
+        font-size: 1.1rem;
+        font-weight: bold;
+        box-shadow: 0 6px 20px rgba(240,113,27,0.5);
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
     }
-    .floating-btn-container button:hover {
-        transform: scale(1.08) !important;
-        box-shadow: 0 10px 28px rgba(240,113,27,0.65) !important;
-    }
-    /* Selector para identificar el botón flotante por su key */
-    div[data-testid="stBottom"] > div {
-        background: transparent !important;
-        border: none !important;
+    .floating-btn:hover {
+        transform: scale(1.08);
+        box-shadow: 0 10px 28px rgba(240,113,27,0.65);
     }
     </style>
 """, unsafe_allow_html=True)
@@ -137,7 +134,6 @@ def cargar_equipos():
             status = str(row[13]).strip()
             
             try:
-                # Formato M/D/YYYY a YYYY-MM-DD
                 fecha_obj = datetime.strptime(fecha_str, "%m/%d/%Y")
                 fecha_formateada = fecha_obj.strftime("%Y-%m-%d")
             except:
@@ -154,8 +150,6 @@ def cargar_equipos():
     except Exception as e:
         return []
 
-# Si es una nueva sesión (cuando el usuario recarga jalando hacia abajo),
-# borramos el caché para que descargue los datos frescos de Google Sheets.
 if "app_iniciada" not in st.session_state:
     st.session_state["app_iniciada"] = True
     cargar_equipos.clear()
@@ -191,7 +185,7 @@ equipos_global_vencidos, equipos_global_por_vencer = verificar_equipos(dias_avis
 if equipos_global_vencidos or equipos_global_por_vencer:
     st.warning("⚠️ **ATENCIÓN:** Tienes equipos de medición vencidos o por vencer en los próximos 7 días. Revisa la pestaña de 'Equipos de medición'.")
 
-# Datos de referencia para CPVC
+# Datos de referencia
 REFERENCE_DATA_CPVC = {
     "CPVC-001": {"diam_min": 15.82, "diam_max": 15.98, "oval_max": 0.20, "esp_min": 1.40, "esp_max": 1.66},
     "CPVC-002": {"diam_min": 22.12, "diam_max": 22.28, "oval_max": 0.26, "esp_min": 1.65, "esp_max": 1.91},
@@ -201,7 +195,6 @@ REFERENCE_DATA_CPVC = {
     "CPVC-006": {"diam_min": 53.90, "diam_max": 54.10, "oval_max": 0.46, "esp_min": 4.90, "esp_max": 5.05},
 }
 
-# Datos fijos para Tubo de Estante
 REGLAS_TUBO = {
     "diam_min": 40.70, 
     "diam_max": 41.10, 
@@ -210,7 +203,6 @@ REGLAS_TUBO = {
     "esp_max": 2.00
 }
 
-# Datos de referencia para PVC Cédula 40
 REFERENCE_DATA_PVC = {
     "Código 43038 (PVC-001)": {"diam_min": 21.20, "diam_max": 21.40, "oval_max": 0.40, "esp_min": 2.60, "esp_max": 2.80},
     "Código 43039 (PVC-002)": {"diam_min": 26.60, "diam_max": 26.80, "oval_max": 0.50, "esp_min": 2.70, "esp_max": 2.90},
@@ -220,7 +212,6 @@ REFERENCE_DATA_PVC = {
     "Código 45522 (PVC-006)": {"diam_min": 60.10, "diam_max": 60.50, "oval_max": 0.60, "esp_min": 3.70, "esp_max": 3.90},
 }
 
-# Datos de referencia para PVC RD
 REFERENCE_DATA_PVC_RD = {
     "Código 40081 (PVC-101)": {"diam_min": 21.20, "diam_max": 21.40, "oval_max": 0.50, "esp_min": 0.80, "esp_max": 1.10},
     "Código 40082 (PVC-102)": {"diam_min": 26.60, "diam_max": 26.80, "oval_max": 0.50, "esp_min": 1.20, "esp_max": 1.50},
@@ -230,7 +221,6 @@ REFERENCE_DATA_PVC_RD = {
     "Código 40086 (PVC-106)": {"diam_min": 60.10, "diam_max": 60.50, "oval_max": 0.50, "esp_min": 2.00, "esp_max": 2.30},
 }
 
-# Datos de referencia para PPR
 REFERENCE_DATA_PPR = {
     "Código 49897 (CV-001)": {"diam_min": 20.00, "diam_max": 20.30, "oval_max": 1.20, "esp_min": 2.80, "esp_max": 3.10},
     "Código 49898 (CV-002)": {"diam_min": 25.00, "diam_max": 25.30, "oval_max": 1.20, "esp_min": 3.50, "esp_max": 3.80},
@@ -240,7 +230,6 @@ REFERENCE_DATA_PPR = {
     "Código 45446 (CV-006)": {"diam_min": 63.00, "diam_max": 63.60, "oval_max": 1.60, "esp_min": 8.60, "esp_max": 9.10},
 }
 
-# Datos de referencia para Tubo de Céspol
 REFERENCE_DATA_CESPOL = {
     'Céspol 1-1/4"': {"diam_min": 32.00, "diam_max": 32.40, "oval_max": 0.50, "esp_min": 1.20, "esp_max": 1.60},
     'Céspol 1-1/2"': {"diam_min": 37.20, "diam_max": 37.60, "oval_max": 0.50, "esp_min": 1.30, "esp_max": 1.70},
@@ -415,7 +404,6 @@ def render_tab(reglas, tab_key, validar_espesor_individual=True, min_aplastamien
             if prom_aplastamiento is not None:
                 cols[3].metric("Aplastamiento Prom.", f"{prom_aplastamiento:.1f}%")
 
-            # Mostrar los cuadros GRANDE en base al resultado
             dictamen_final = "RECHAZADO" if fallos else "PASADO"
             if fallos:
                 st.error("<div class='big-title'>RECHAZADO</div>", icon="🚫")
@@ -426,7 +414,6 @@ def render_tab(reglas, tab_key, validar_espesor_individual=True, min_aplastamien
                 st.success("<div class='big-title'>PASADO</div>", icon="✅")
                 st.success("✨ ¡Excelente! Las mediciones evaluadas cumplen con la norma.")
                 
-            # Guardado invisible en Google Sheets
             datos_registro = {
                 "fecha": datetime.now().strftime("%d/%m/%Y"),
                 "hora": datetime.now().strftime("%H:%M:%S"),
@@ -442,7 +429,9 @@ def render_tab(reglas, tab_key, validar_espesor_individual=True, min_aplastamien
             threading.Thread(target=enviar_a_google_sheets, args=(datos_registro,)).start()
 
 # --- Tab Layout ---
-tab_cpvc, tab_estante, tab_pvc, tab_pvc_rd, tab_ppr, tab_cespol, tab_rafia, tab_equipos = st.tabs(["CPVC", "Tubo de Estante", "PVC Cédula 40", "PVC RD", "PPR", "Tubo de Céspol", "Rafia", "Equipos de medición"])
+tab_cpvc, tab_estante, tab_pvc, tab_pvc_rd, tab_ppr, tab_cespol, tab_rafia, tab_equipos = st.tabs([
+    "CPVC", "Tubo de Estante", "PVC Cédula 40", "PVC RD", "PPR", "Tubo de Céspol", "Rafia", "Equipos de medición"
+])
 
 with tab_cpvc:
     clave = st.selectbox("📌 Seleccione Clave:", list(REFERENCE_DATA_CPVC.keys()), key="sel_cpvc")
@@ -467,7 +456,6 @@ with tab_pvc_rd:
 with tab_ppr:
     clave_ppr = st.selectbox("📌 Seleccione Clave:", list(REFERENCE_DATA_PPR.keys()), key="sel_ppr")
     st.divider()
-    # PPR no valida cada espesor individual
     render_tab(REFERENCE_DATA_PPR[clave_ppr], "ppr", validar_espesor_individual=False, nombre_tubo=clave_ppr)
 
 with tab_cespol:
@@ -508,8 +496,6 @@ with tab_rafia:
 with tab_equipos:
     st.header("Control de Equipos de Medición")
     
-    # -- Generación de Link de WhatsApp --
-    import urllib.parse
     vencidos_tot, por_vencer_tot = verificar_equipos(dias_aviso=30)
     msg = "*Reporte de Equipos - Control de Calidad*\n"
     if vencidos_tot:
@@ -526,7 +512,6 @@ with tab_equipos:
     numero_jefe = "525570708905"
     wa_link = f"https://wa.me/{numero_jefe}?text={urllib.parse.quote(msg)}"
 
-    # -- Recordatorio Inteligente (Lunes = 0) --
     es_lunes = datetime.now().weekday() == 0
     falta_enviar = "wa_enviado_hoy" not in st.session_state or st.session_state["wa_enviado_hoy"] != datetime.now().date()
 
@@ -541,11 +526,9 @@ with tab_equipos:
                 st.rerun()
         st.markdown("---")
     else:
-        # Botón manual disponible cualquier otro día o si ya se marcó como enviado
         st.markdown(f'<a href="{wa_link}" target="_blank" style="display: inline-block; padding: 10px 20px; background-color: #128C7E; color: white; text-align: center; text-decoration: none; font-size: 14px; border-radius: 6px; font-weight: bold;">📤 Enviar Reporte Manualmente</a>', unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
     
-    # Mostrar alertas en la parte superior de la pestaña
     vencidos, por_vencer = verificar_equipos(dias_aviso=30)
     if vencidos or por_vencer:
         total_alertas = len(vencidos) + len(por_vencer)
@@ -563,13 +546,10 @@ with tab_equipos:
     st.markdown("---")
     st.subheader("Inventario de Equipos")
     
-    # Crear un DataFrame para mostrar en una tabla
     df_equipos = pd.DataFrame(EQUIPMENT_DATA)
-    # Renombrar columnas para la tabla
     if not df_equipos.empty:
         df_equipos.columns = ["Código", "Descripción", "Próxima Calibración", "Ubicación", "Status"]
     
-    # Mostrar tabla interactiva
     st.dataframe(df_equipos, use_container_width=True, hide_index=True)
 
 # =============================================================
@@ -635,21 +615,18 @@ def dialogo_entrega_turno():
 
     # ── 6. INSTRUMENTOS DE MEDICIÓN ───────────────────────────
     st.markdown("**6. Instrumentos de medición \\*** *(Diario)*")
-
     df_instrumentos = pd.DataFrame({
         "Inspector": ["Inspector 1", "Inspector 2", "Inspector 3"],
         "Área Asignada": ["CPVC / Carretes / Estante", "PPR / Rafia", "PVC / Canaleta / Trenzado"],
-        "Vernier": ["VER-INS1-001", "VER-INS2-001", "VER-INS3-001"],
-        "Garganta": ["GAR-INS1-001", "GAR-INS2-001", "GAR-INS3-001"],
-        "Flexómetro": ["FLX-INS1-001", "FLX-INS2-001", "FLX-INS3-001"],
+        "Vernier": ["IP-ACP17-068", "IP-ACP17-062", "IP-ACP17-001"],
+        "Garganta": ["IP-ACP7E-051", "IP-ACP17-016", "IP-ACP17-050"],
+        "Flexómetro": ["IP-ACP17-063", "IP-ACP17-066", "IP-ACP17-004"],
     })
     st.dataframe(df_instrumentos, use_container_width=True, hide_index=True)
 
     estado_instrumentos = st.radio(
         "Estado general de los instrumentos",
-        ["✅ Todos OK — En su lugar y en buen estado",
-         "⚠️ Alguno requiere revisión (especificar en Observaciones)",
-         "🔴 Instrumento faltante o dañado (especificar en Observaciones)"],
+        ["Calibrador Vernier", "Calibrador garganta", "Flexómetro", "Gauge (Cuando aplique)"],
         index=None, key="et_instrumentos"
     )
     if not estado_instrumentos:
@@ -658,13 +635,13 @@ def dialogo_entrega_turno():
     st.divider()
 
     # ── 7. FOTOGRAFÍA DE INSTRUMENTOS ────────────────────────
-    st.markdown("**7. Fotografía con etiquetas visibles de instrumentos** *(Semanal — APLICA SOLO 2T)*")
+    st.markdown("**7. Fotografía con etiquetas visibles y en buen estado de los instrumentos de medición** *(Semanal, APLICA SOLO 2T)*")
     col_7a, col_7b = st.columns(2)
     with col_7a:
-        st.markdown("📷 Tomar foto")
+        st.markdown("📷 Tomar foto con cámara")
         foto_instrumentos = st.camera_input("Foto instrumentos", key="et_foto_inst", label_visibility="collapsed")
     with col_7b:
-        st.markdown("📎 Adjuntar archivo")
+        st.markdown("📎 Cargar archivo")
         archivo_instrumentos = st.file_uploader(
             "Subir archivo de instrumentos",
             type=["png", "jpg", "jpeg", "pdf"],
@@ -676,7 +653,7 @@ def dialogo_entrega_turno():
     st.divider()
 
     # ── 8. MASTERS EN BUEN ESTADO ────────────────────────────
-    st.markdown("**8. Masters en buen estado \\*** *(Semanal — APLICA SOLO 2T)*")
+    st.markdown("**8. Masters en buen estado \\*** *(Semanal, APLICA SOLO 2T)*")
     masters = st.radio(
         "Estado de masters",
         ["OK", "NOK", "Otras"],
@@ -691,162 +668,89 @@ def dialogo_entrega_turno():
     st.divider()
 
     # ── 9. TARIMAS PRELIBERADAS / SIN LIBERAR ────────────────
-    st.markdown("**9. Número de tarimas preliberadas y/o sin liberar pendientes \\***")
-    tarimas = st.text_input("Escriba su respuesta", placeholder="Ej: 3 preliberadas, 1 sin liberar en L4", key="et_tarimas")
+    st.markdown("**9. Número de tarimas preliberadas y/o sin liberar que se dejan pendientes \\***")
+    tarimas = st.text_input("Escriba su respuesta", placeholder="Ej: 3 tarimas en L2", key="et_tarimas")
     if not tarimas.strip():
         errores.append("9. Número de tarimas pendientes")
 
     st.divider()
 
     # ── 10. SEGUIMIENTO 5'S ───────────────────────────────────
-    st.markdown("**10. Seguimiento 5'S \\*** *(Fotografía del área libre de muestras y/o scrap — Diario)*")
+    st.markdown("**10. Seguimiento 5's (Fotografía del área libre de muestras y/o scrap) \\*** *(Diario)*")
     col_10a, col_10b = st.columns(2)
     with col_10a:
-        st.markdown("📷 Tomar foto")
-        foto_5s = st.camera_input("Foto 5S", key="et_foto_5s", label_visibility="collapsed")
+        st.markdown("📷 Tomar foto del área")
+        foto_5s = st.camera_input("Foto 5's", key="et_foto_5s", label_visibility="collapsed")
     with col_10b:
-        st.markdown("📎 Adjuntar archivo")
+        st.markdown("📎 Cargar archivo 5's")
         archivo_5s = st.file_uploader(
-            "Subir foto 5S",
+            "Subir archivo 5's",
             type=["png", "jpg", "jpeg", "pdf"],
             key="et_arch_5s", label_visibility="collapsed"
         )
         if archivo_5s:
             st.success(f"✔ {archivo_5s.name}")
-    tiene_evidencia_5s = foto_5s is not None or archivo_5s is not None
-    if not tiene_evidencia_5s:
-        errores.append("10. Seguimiento 5'S (foto obligatoria)")
 
     st.divider()
 
     # ── 11. ÁREA DE CUARENTENA ────────────────────────────────
-    st.markdown("**11. Área de cuarentena \\*** *(Fotografía del área libre de obstáculos)*")
-
+    st.markdown("**11. Área de cuarentena (Fotografía del área de cuarentena correspondiente libre de obstáculos) \\***")
     df_cuarentena = pd.DataFrame({
-        "Inspector": ["Inspector 1", "Inspector 2", "Inspector 3"],
-        "Área de Cuarentena Asignada": ["Área Estante", "Área Cuerda y Rafia", "Área Canaleta y Perfilería"],
+        "Inspector": ["Inspector 1 (CPVC / Carretes / Estante)", "Inspector 2 (PPR / Rafia)", "Inspector 3 (PVC / Canaleta / Trenzado)"],
+        "Área Correspondiente": ["Área Estante", "Área Cuerda y Rafia", "Área Canaleta y Perfilería"]
     })
     st.dataframe(df_cuarentena, use_container_width=True, hide_index=True)
 
     col_11a, col_11b = st.columns(2)
     with col_11a:
-        st.markdown("📷 Tomar foto")
-        foto_cuarentena = st.camera_input("Foto cuarentena", key="et_foto_cuar", label_visibility="collapsed")
+        st.markdown("📷 Tomar foto cuarentena")
+        foto_cuarentena = st.camera_input("Foto cuarentena", key="et_foto_cuarentena", label_visibility="collapsed")
     with col_11b:
-        st.markdown("📎 Adjuntar archivo")
+        st.markdown("📎 Cargar archivo cuarentena")
         archivo_cuarentena = st.file_uploader(
-            "Subir foto cuarentena",
+            "Subir archivo cuarentena",
             type=["png", "jpg", "jpeg", "pdf"],
-            key="et_arch_cuar", label_visibility="collapsed"
+            key="et_arch_cuarentena", label_visibility="collapsed"
         )
         if archivo_cuarentena:
             st.success(f"✔ {archivo_cuarentena.name}")
-    tiene_evidencia_cuar = foto_cuarentena is not None or archivo_cuarentena is not None
-    if not tiene_evidencia_cuar:
-        errores.append("11. Área de cuarentena (foto obligatoria)")
 
     st.divider()
 
     # ── 12. OBSERVACIONES ─────────────────────────────────────
     st.markdown("**12. Observaciones \\***")
-    observaciones = st.text_area("Escriba su respuesta", placeholder="Escribe aquí compromisos, pendientes o cualquier nota relevante para el siguiente turno...", height=100, key="et_obs")
+    observaciones = st.text_area("Escriba su respuesta", placeholder="Comentarios finales...", key="et_observaciones")
     if not observaciones.strip():
         errores.append("12. Observaciones")
 
     st.divider()
 
-    # ── BOTÓN ENVIAR ──────────────────────────────────────────
-    if st.button("✅ Enviar Cuestionario", type="primary", use_container_width=True, key="et_enviar"):
+    # ── BOTÓN DE ENVÍO ────────────────────────────────────────
+    if st.button("🚀 Enviar Cuestionario", type="primary", use_container_width=True):
         if errores:
-            st.error("⚠️ **Faltan los siguientes campos obligatorios:**\n" + "\n".join([f"- {e}" for e in errores]))
+            st.error("⚠️ Faltan los siguientes campos obligatorios por responder:")
+            for err in errores:
+                st.markdown(f"- ❌ {err}")
         else:
-            datos_turno = {
+            datos_cuestionario = {
                 "fecha": datetime.now().strftime("%d/%m/%Y"),
                 "hora": datetime.now().strftime("%H:%M:%S"),
                 "tipo": "ENTREGA_TURNO",
-                "clave": f"{turno} - {area}",
-                "prom_diam": nombre,
-                "ovalidad": estado_instrumentos,
-                "prom_esp": f"Condicionados: {condicionados} | Desviaciones: {desviaciones or 'N/A'}",
-                "aplastamiento": f"Masters: {masters} {masters_obs} | Tarimas: {tarimas}",
-                "resultado": "ENTREGA DE TURNO",
-                "motivos": observaciones,
+                "nombre": nombre,
+                "turno": turno,
+                "area": area,
+                "condicionados": condicionados,
+                "desviaciones": desviaciones,
+                "instrumentos": estado_instrumentos,
+                "masters": masters if masters != "Otras" else f"Otras: {masters_obs}",
+                "tarimas": tarimas,
+                "observaciones": observaciones
             }
-            threading.Thread(target=enviar_a_google_sheets, args=(datos_turno,)).start()
-            st.success(f"✅ Cuestionario enviado correctamente. ¡Buen descanso, **{nombre}**!")
-            # Muestra miniaturas de fotos capturadas
-            fotos_tomadas = [(foto_instrumentos, "Instrumentos"), (foto_5s, "5'S"), (foto_cuarentena, "Cuarentena")]
-            fotos_validas = [(f, lbl) for f, lbl in fotos_tomadas if f is not None]
-            if fotos_validas:
-                st.markdown("**Evidencias fotográficas registradas:**")
-                cols_fotos = st.columns(len(fotos_validas))
-                for col_f, (foto, lbl) in zip(cols_fotos, fotos_validas):
-                    col_f.image(foto, caption=lbl, use_container_width=True)
+            threading.Thread(target=enviar_a_google_sheets, args=(datos_cuestionario,)).start()
+            st.success("✨ ¡Cuestionario de Entrega de Turno enviado correctamente!")
 
-# ── Botón flotante visible en toda la app ─────────────────────
-st.markdown("""
-    <style>
-    [data-testid="stBottom"] {
-        position: fixed !important;
-        bottom: 20px !important;
-        right: 20px !important;
-        z-index: 9999 !important;
-        width: auto !important;
-        background: transparent !important;
-    }
-    [data-testid="stBottom"] > div {
-        background: transparent !important;
-    }
-    [data-testid="stBottom"] button {
-        background: linear-gradient(135deg, #F0711B, #c0530a) !important;
-        color: white !important;
-        border: none !important;
-        border-radius: 50px !important;
-        padding: 14px 24px !important;
-        font-size: 1.15rem !important;
-        font-weight: 800 !important;
-        box-shadow: 0 6px 24px rgba(240,113,27,0.55) !important;
-        letter-spacing: 0.5px !important;
-        transition: transform 0.2s, box-shadow 0.2s !important;
-        white-space: nowrap !important;
-    }
-    [data-testid="stBottom"] button:hover {
-        transform: scale(1.07) !important;
-        box-shadow: 0 10px 32px rgba(240,113,27,0.7) !important;
-    }
-    </style>
-""", unsafe_allow_html=True)
-
-with st.container():
-    # Inyectar estilo CSS para el botón flotante en la esquina inferior derecha
-st.markdown("""
-    <style>
-    .floating-button {
-        position: fixed;
-        bottom: 30px;
-        right: 30px;
-        z-index: 9999;
-        background-color: #ff4b4b;
-        color: white;
-        padding: 15px 20px;
-        border-radius: 50px;
-        text-align: center;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-        font-weight: bold;
-        text-decoration: none;
-    }
-    .floating-button:hover {
-        background-color: #ff2121;
-        color: white;
-    }
-    </style>
-""", unsafe_allow_html=True)
-
-# O puedes usar un botón nativo en el sidebar o en un contenedor fijo:
-if st.button("📝 Abrir Cuestionario de Turno", type="primary"):
-    # Aquí abres el diálogo o el formulario
-    pass
-        if st.button("📝 Entrega de Turno", key="fab_turno", use_container_width=False):
-            dialogo_entrega_turno()
-
-
+# Botón flotante para abrir el modal del cuestionario
+col_float, _ = st.columns([1, 10])
+with col_float:
+    if st.button("📝 Cuestionario de Turno", type="primary", key="btn_modal_flotante"):
+        dialogo_entrega_turno()
