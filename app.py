@@ -1,8 +1,3 @@
-Este error de sintaxis (`unterminated triple-quoted string literal`) suele ocurrir al copiar y pegar código debido a caracteres de espacio invisible (`non-breaking spaces`) que se filtran desde el portapapeles y confunden a Python con las comillas triples.
-
-Aquí tienes el **código completo, limpio y 100% libre de caracteres ocultos** listo para copiar y reemplazar en tu archivo `app.py`:
-
-```python
 import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
@@ -753,5 +748,3 @@ def dialogo_entrega_turno():
 # Botón flotante lateral fijo a media altura que abre el cuestionario modal
 if st.button("📝 Cuestionario de Turno", type="primary", key="btn_modal_flotante"):
     dialogo_entrega_turno()
-
-```
