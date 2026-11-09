@@ -86,29 +86,6 @@ st.markdown("""
         font-weight: 900;
         color: #F0711B;
     }
-    div:has(> button[key="btn_modal_flotante"]) {
-        position: fixed !important;
-        top: 50% !important;
-        right: 0px !important;
-        transform: translateY(-50%) !important;
-        z-index: 99999 !important;
-    }
-    div:has(> button[key="btn_modal_flotante"]) button {
-        background: linear-gradient(135deg, #F0711B, #d45f10) !important;
-        color: white !important;
-        border: none !important;
-        border-radius: 25px 0px 0px 25px !important;
-        padding: 14px 20px !important;
-        font-size: 1rem !important;
-        font-weight: 700 !important;
-        box-shadow: -4px 4px 15px rgba(0,0,0,0.3) !important;
-        cursor: pointer !important;
-        transition: all 0.3s ease !important;
-    }
-    div:has(> button[key="btn_modal_flotante"]) button:hover {
-        padding-left: 26px !important;
-        box-shadow: -6px 6px 20px rgba(240,113,27,0.6) !important;
-    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -251,302 +228,6 @@ def limpiar_campos(tab_key):
 def limpiar_rafia():
     if "peso_rafia" in st.session_state:
         st.session_state["peso_rafia"] = None
-
-def render_tab(reglas, tab_key, validar_espesor_individual=True, min_aplastamiento=None, nombre_tubo="Desconocido"):
-    base_diam = int(reglas['diam_min'])
-    base_esp = int(reglas['esp_min'])
-    
-    def create_input_card(label_str, id_str, base_val):
-        val = None
-        with st.container(border=True):
-            modo_manual = st.checkbox(f"📏 **{label_str}** — Modo Libre", key=f"chk_{id_str}_{tab_key}")
-                
-            if not modo_manual:
-                input_val = st.number_input(
-                    f"🟢 Base: **{base_val}.**", 
-                    value=None, 
-                    format="%d", 
-                    step=1, 
-                    key=f"int_{id_str}_{tab_key}"
-                )
-                if input_val is not None:
-                    val = base_val + (input_val / 100.0)
-            else:
-                input_val = st.number_input(
-                    f"Lectura completa (Flotante)", 
-                    value=None, 
-                    format="%.2f", 
-                    step=0.01, 
-                    key=f"man_{id_str}_{tab_key}"
-                )
-                if input_val is not None:
-                    val = input_val
-        return val
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-        st.markdown(f"#### Diámetros (Norma: {reglas['diam_min']:.2f} - {reglas['diam_max']:.2f} mm)")
-            
-        d1 = create_input_card("D1", "d1", base_diam)
-        d2 = create_input_card("D2", "d2", base_diam)
-        d3 = create_input_card("D3", "d3", base_diam)
-        d4 = create_input_card("D4", "d4", base_diam)
-        st.caption(f"Límite de Ovalidad: {reglas['oval_max']:.2f} mm")
-
-    with col2:
-        st.markdown(f"#### Espesores (Norma: {reglas['esp_min']:.2f} - {reglas['esp_max']:.2f} mm)")
-            
-        e1 = create_input_card("E1", "e1", base_esp)
-        e2 = create_input_card("E2", "e2", base_esp)
-        e3 = create_input_card("E3", "e3", base_esp)
-        e4 = create_input_card("E4", "e4", base_esp)
-
-    st.divider()
-    
-    aplastamiento_inputs = []
-    if min_aplastamiento is not None:
-        with st.expander(f"💥 Prueba de Aplastamiento (Mínimo requerido: > {min_aplastamiento}%)"):
-            col_a1, col_a2, col_a3 = st.columns(3)
-            for i, col in enumerate([col_a1, col_a2, col_a3]):
-                with col:
-                    with st.container(border=True):
-                        st.markdown(f"**Probeta {i+1}**")
-                        ai = st.number_input("Ai (Inicial)", value=None, format="%.2f", step=0.1, key=f"ai_{i}_{tab_key}")
-                        af = st.number_input("AF (Final)", value=None, format="%.2f", step=0.1, key=f"af_{i}_{tab_key}")
-                        esp1 = st.number_input("Esp1", value=None, format="%.2f", step=0.1, key=f"esp1_{i}_{tab_key}")
-                        esp2 = st.number_input("Esp2", value=None, format="%.2f", step=0.1, key=f"esp2_{i}_{tab_key}")
-                        if all(x is not None for x in [ai, af, esp1, esp2]) and ai > 0:
-                            x_val = (af - esp1 - esp2) / ai
-                            pct = (1 - x_val) * 100
-                            aplastamiento_inputs.append(pct)
-                            st.info(f"Resultado: {pct:.1f}%")
-        st.divider()
-
-    col_btns1, col_btns2 = st.columns([3, 1])
-    with col_btns1:
-        evaluar_btn = st.button("🚀 EVALUAR MEDIDAS", type="primary", use_container_width=True, key=f"btn_eval_{tab_key}")
-    with col_btns2:
-        st.button("🧹 Limpiar Todo", on_click=limpiar_campos, args=(tab_key,), use_container_width=True, key=f"btn_clean_{tab_key}")
-
-    if evaluar_btn:
-        diams_raw = [d1, d2, d3, d4]
-        esps_raw = [e1, e2, e3, e4]
-        
-        diams_filled = [d for d in diams_raw if d is not None]
-        esps_filled = [e for e in esps_raw if e is not None]
-        
-        hay_datos_principales = len(diams_filled) > 0 or len(esps_filled) > 0
-        hay_aplastamiento = len(aplastamiento_inputs) > 0
-        
-        if not hay_datos_principales and not hay_aplastamiento:
-            st.warning("⚠️ No has ingresado ninguna medición para evaluar.")
-        else:
-            fallos = []
-            prom_diam = None
-            ovalidad = None
-            prom_esp = None
-            
-            if len(diams_filled) > 0:
-                if len(diams_filled) < 4:
-                    fallos.append("⚠️ Faltan datos de Diámetro para realizar la evaluación de diámetros.")
-                else:
-                    prom_diam = sum(diams_filled) / len(diams_filled)
-                    min_diam = min(diams_filled)
-                    max_diam = max(diams_filled)
-                    ovalidad = max(abs(max_diam - prom_diam), abs(min_diam - prom_diam))
-                    
-                    if not (reglas["diam_min"] <= prom_diam <= reglas["diam_max"]):
-                        fallos.append(f"**Diámetro Promedio** ({prom_diam:.2f} mm) fuera de rango ({reglas['diam_min']:.2f} a {reglas['diam_max']:.2f})")
-                    if ovalidad > reglas["oval_max"]:
-                        fallos.append(f"**Ovalidad** ({ovalidad:.2f} mm) excede límite ({reglas['oval_max']:.2f} mm)")
-                        
-            if len(esps_filled) > 0:
-                if len(esps_filled) < 4:
-                    fallos.append("⚠️ Faltan datos de Espesor para realizar la evaluación de espesores.")
-                else:
-                    prom_esp = sum(esps_filled) / len(esps_filled)
-                    
-                    if not (reglas["esp_min"] <= prom_esp <= reglas["esp_max"]):
-                        fallos.append(f"**Espesor Promedio** ({prom_esp:.2f} mm) fuera de rango ({reglas['esp_min']:.2f} a {reglas['esp_max']:.2f})")
-                        
-                    if validar_espesor_individual:
-                        for i, esp in enumerate(esps_filled):
-                            if not (reglas["esp_min"] <= esp <= reglas["esp_max"]):
-                                fallos.append(f"**Espesor {i+1} individual** ({esp:.2f} mm) crítico fuera de rango ({reglas['esp_min']:.2f} a {reglas['esp_max']:.2f})")
-                                
-            prom_aplastamiento = None
-            if min_aplastamiento is not None:
-                if len(aplastamiento_inputs) > 0:
-                    if len(aplastamiento_inputs) < 3:
-                        fallos.append("⚠️ Faltan datos en la prueba de Aplastamiento (requiere 3 probetas).")
-                    else:
-                        prom_aplastamiento = sum(aplastamiento_inputs) / len(aplastamiento_inputs)
-                        if prom_aplastamiento <= min_aplastamiento:
-                            fallos.append(f"**Aplastamiento Promedio** ({prom_aplastamiento:.1f}%) no cumple el mínimo requerido (> {min_aplastamiento}%).")
-                        for i, pct in enumerate(aplastamiento_inputs):
-                            if pct <= min_aplastamiento:
-                                fallos.append(f"**Aplastamiento Probeta {i+1}** ({pct:.1f}%) no cumple el mínimo requerido (> {min_aplastamiento}%).")
-                            
-            st.divider()
-            st.write("### 📝 Datos Calculados")
-            
-            cols = st.columns(4)
-            if prom_diam is not None:
-                cols[0].metric("Diámetro Promedio", f"{prom_diam:.2f} mm")
-                cols[1].metric("Ovalidad Calculada", f"{ovalidad:.2f} mm")
-            if prom_esp is not None:
-                cols[2].metric("Espesor Promedio", f"{prom_esp:.2f} mm")
-            if prom_aplastamiento is not None:
-                cols[3].metric("Aplastamiento Prom.", f"{prom_aplastamiento:.1f}%")
-
-            dictamen_final = "RECHAZADO" if fallos else "PASADO"
-            if fallos:
-                st.error("<div class='big-title'>RECHAZADO</div>", icon="🚫")
-                st.error("#### Motivos de Falla:")
-                for fallo in fallos:
-                    st.markdown(f"- ❌ {fallo}")
-            else:
-                st.success("<div class='big-title'>PASADO</div>", icon="✅")
-                st.success("✨ ¡Excelente! Las mediciones evaluadas cumplen con la norma.")
-                
-            datos_registro = {
-                "fecha": datetime.now().strftime("%d/%m/%Y"),
-                "hora": datetime.now().strftime("%H:%M:%S"),
-                "tipo": tab_key.upper(),
-                "clave": nombre_tubo,
-                "prom_diam": f"{prom_diam:.2f}" if prom_diam is not None else "NA",
-                "ovalidad": f"{ovalidad:.2f}" if ovalidad is not None else "NA",
-                "prom_esp": f"{prom_esp:.2f}" if prom_esp is not None else "NA",
-                "aplastamiento": f"{prom_aplastamiento:.1f}%" if prom_aplastamiento is not None else "NA",
-                "resultado": dictamen_final,
-                "motivos": " | ".join(fallos).replace("**", "") if fallos else "Ninguno"
-            }
-            threading.Thread(target=enviar_app_google_sheets, args=(datos_registro,)).start()
-
-# --- Tab Layout ---
-tab_cpvc, tab_estante, tab_pvc, tab_pvc_rd, tab_ppr, tab_cespol, tab_rafia, tab_equipos = st.tabs([
-    "CPVC", "Tubo de Estante", "PVC Cédula 40", "PVC RD", "PPR", "Tubo de Céspol", "Rafia", "Equipos de medición"
-])
-
-with tab_cpvc:
-    clave = st.selectbox("📌 Seleccione Clave:", list(REFERENCE_DATA_CPVC.keys()), key="sel_cpvc")
-    st.divider()
-    render_tab(REFERENCE_DATA_CPVC[clave], "cpvc", min_aplastamiento=80, nombre_tubo=clave)
-
-with tab_estante:
-    st.markdown("#### 📌 Especificaciones Fijas: Tubo de Estante")
-    st.divider()
-    render_tab(REGLAS_TUBO, "tubo", nombre_tubo="Tubo de Estante")
-
-with tab_pvc:
-    clave_pvc = st.selectbox("📌 Seleccione Clave:", list(REFERENCE_DATA_PVC.keys()), key="sel_pvc")
-    st.divider()
-    render_tab(REFERENCE_DATA_PVC[clave_pvc], "pvc", min_aplastamiento=60, nombre_tubo=clave_pvc)
-
-with tab_pvc_rd:
-    clave_pvc_rd = st.selectbox("📌 Seleccione Clave:", list(REFERENCE_DATA_PVC_RD.keys()), key="sel_pvc_rd")
-    st.divider()
-    render_tab(REFERENCE_DATA_PVC_RD[clave_pvc_rd], "pvc_rd", min_aplastamiento=80, nombre_tubo=clave_pvc_rd)
-
-with tab_ppr:
-    clave_ppr = st.selectbox("📌 Seleccione Clave:", list(REFERENCE_DATA_PPR.keys()), key="sel_ppr")
-    st.divider()
-    render_tab(REFERENCE_DATA_PPR[clave_ppr], "ppr", validar_espesor_individual=False, nombre_tubo=clave_ppr)
-
-with tab_cespol:
-    clave_cespol = st.selectbox("📌 Seleccione Clave:", list(REFERENCE_DATA_CESPOL.keys()), key="sel_cespol")
-    st.divider()
-    render_tab(REFERENCE_DATA_CESPOL[clave_cespol], "cespol", nombre_tubo=clave_cespol)
-
-with tab_rafia:
-    st.markdown("#### 📌 Especificaciones de Rafia")
-    st.divider()
-    
-    col_raf_in, col_space = st.columns([1, 1])
-    with col_raf_in:
-        peso_rafia = st.number_input("Ingresar Peso (g)", value=None, format="%.2f", step=0.1, key="peso_rafia")
-    
-    col_btns1, col_btns2 = st.columns([3, 1])
-    with col_btns1:
-        evaluar_rafia_btn = st.button("🚀 CALCULAR", type="primary", use_container_width=True, key="btn_eval_rafia")
-    with col_btns2:
-        st.button("🧹 Limpiar Todo", on_click=limpiar_rafia, use_container_width=True, key="btn_clean_rafia")
-    
-    if evaluar_rafia_btn:
-        if peso_rafia is not None and peso_rafia > 0:
-            peso_por_metro = peso_rafia / 9
-            denier = peso_por_metro * 9000
-            
-            st.divider()
-            st.write("### 📝 Resultados Calculados")
-            
-            c1, c2 = st.columns(2)
-            with c1:
-                st.markdown(f"<div class='rafia-card'><div class='rafia-title'>Peso por metro (g/m)</div><div class='rafia-value'>{peso_por_metro:.2f}</div></div>", unsafe_allow_html=True)
-            with c2:
-                st.markdown(f"<div class='rafia-card'><div class='rafia-title'>Denier</div><div class='rafia-value'>{denier:.0f}</div></div>", unsafe_allow_html=True)
-        else:
-            st.warning("⚠️ Ingresa un peso válido para calcular.")
-
-with tab_equipos:
-    st.header("Control de Equipos de Medición")
-    
-    vencidos_tot, por_vencer_tot = verificar_equipos(dias_aviso=30)
-    msg = "*Reporte de Equipos - Control de Calidad*\n"
-    if vencidos_tot:
-        msg += "\n*🔴 Equipos Vencidos:*\n"
-        for eq, _ in vencidos_tot:
-            msg += f"- {eq['descripcion']} ({eq['codigo']}) - Venció: {eq['proxima_calibracion']}\n"
-    if por_vencer_tot:
-        msg += "\n*🟡 Equipos por Vencer:*\n"
-        for eq, _ in por_vencer_tot:
-            msg += f"- {eq['descripcion']} ({eq['codigo']}) - Vence: {eq['proxima_calibracion']}\n"
-    if not vencidos_tot and not por_vencer_tot:
-        msg += "\n✅ Todos los equipos están al día."
-        
-    numero_jefe = "525570708905"
-    wa_link = f"https://wa.me/{numero_jefe}?text={urllib.parse.quote(msg)}"
-
-    es_lunes = datetime.now().weekday() == 0
-    falta_enviar = "wa_enviado_hoy" not in st.session_state or st.session_state["wa_enviado_hoy"] != datetime.now().date()
-
-    if es_lunes and falta_enviar:
-        st.info("📅 **RECORDATORIO:** Es Lunes. No olvides enviar el reporte de equipos de esta semana.")
-        col_wa1, col_wa2 = st.columns([2, 1])
-        with col_wa1:
-            st.markdown(f'<a href="{wa_link}" target="_blank" style="display: inline-block; padding: 12px 24px; background-color: #25D366; color: white; text-align: center; text-decoration: none; font-size: 16px; border-radius: 8px; font-weight: bold; width: 100%;">📲 Abrir WhatsApp y Enviar Reporte</a>', unsafe_allow_html=True)
-        with col_wa2:
-            if st.button("✅ Marcar como Enviado", use_container_width=True):
-                st.session_state["wa_enviado_hoy"] = datetime.now().date()
-                st.rerun()
-        st.markdown("---")
-    else:
-        st.markdown(f'<a href="{wa_link}" target="_blank" style="display: inline-block; padding: 10px 20px; background-color: #128C7E; color: white; text-align: center; text-decoration: none; font-size: 14px; border-radius: 6px; font-weight: bold;">📤 Enviar Reporte Manualmente</a>', unsafe_allow_html=True)
-        st.markdown("<br>", unsafe_allow_html=True)
-    
-    vencidos, por_vencer = verificar_equipos(dias_aviso=30)
-    if vencidos or por_vencer:
-        total_alertas = len(vencidos) + len(por_vencer)
-        with st.container():
-            st.subheader(f"🔔 Alertas ({total_alertas})")
-            if vencidos:
-                for eq, dias in vencidos:
-                    st.error(f"🔴 **VENCIDO ({abs(dias)} días):** {eq['descripcion']} ({eq['codigo']}) - Venció el {eq['proxima_calibracion']}")
-            if por_vencer:
-                for eq, dias in por_vencer:
-                    st.warning(f"🟡 **POR VENCER (en {dias} días):** {eq['descripcion']} ({eq['codigo']}) - Vence el {eq['proxima_calibracion']}")
-    else:
-        st.success("✅ Todos los equipos activos están al día con su calibración.")
-        
-    st.markdown("---")
-    st.subheader("Inventario de Equipos")
-    
-    df_equipos = pd.DataFrame(EQUIPMENT_DATA)
-    if not df_equipos.empty:
-        df_equipos.columns = ["Código", "Descripción", "Próxima Calibración", "Ubicación", "Status"]
-    
-    st.dataframe(df_equipos, use_container_width=True, hide_index=True)
 
 # =============================================================
 # ENTREGA DE TURNO — Cuestionario Oficial de 12 Puntos
@@ -745,6 +426,311 @@ def dialogo_entrega_turno():
             threading.Thread(target=enviar_app_google_sheets, args=(datos_cuestionario,)).start()
             st.success("✨ ¡Cuestionario de Entrega de Turno enviado correctamente!")
 
-# Botón flotante lateral fijo a media altura que abre el cuestionario modal
-if st.button("📝 Cuestionario de Turno", type="primary", key="btn_modal_flotante"):
-    dialogo_entrega_turno()
+
+def render_tab(reglas, tab_key, validar_espesor_individual=True, min_aplastamiento=None, nombre_tubo="Desconocido"):
+    base_diam = int(reglas['diam_min'])
+    base_esp = int(reglas['esp_min'])
+    
+    def create_input_card(label_str, id_str, base_val):
+        val = None
+        with st.container(border=True):
+            modo_manual = st.checkbox(f"📏 **{label_str}** — Modo Libre", key=f"chk_{id_str}_{tab_key}")
+                
+            if not modo_manual:
+                input_val = st.number_input(
+                    f"🟢 Base: **{base_val}.**", 
+                    value=None, 
+                    format="%d", 
+                    step=1, 
+                    key=f"int_{id_str}_{tab_key}"
+                )
+                if input_val is not None:
+                    val = base_val + (input_val / 100.0)
+            else:
+                input_val = st.number_input(
+                    f"Lectura completa (Flotante)", 
+                    value=None, 
+                    format="%.2f", 
+                    step=0.01, 
+                    key=f"man_{id_str}_{tab_key}"
+                )
+                if input_val is not None:
+                    val = input_val
+        return val
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.markdown(f"#### Diámetros (Norma: {reglas['diam_min']:.2f} - {reglas['diam_max']:.2f} mm)")
+            
+        d1 = create_input_card("D1", "d1", base_diam)
+        d2 = create_input_card("D2", "d2", base_diam)
+        d3 = create_input_card("D3", "d3", base_diam)
+        d4 = create_input_card("D4", "d4", base_diam)
+        st.caption(f"Límite de Ovalidad: {reglas['oval_max']:.2f} mm")
+
+    with col2:
+        st.markdown(f"#### Espesores (Norma: {reglas['esp_min']:.2f} - {reglas['esp_max']:.2f} mm)")
+            
+        e1 = create_input_card("E1", "e1", base_esp)
+        e2 = create_input_card("E2", "e2", base_esp)
+        e3 = create_input_card("E3", "e3", base_esp)
+        e4 = create_input_card("E4", "e4", base_esp)
+
+    st.divider()
+    
+    aplastamiento_inputs = []
+    if min_aplastamiento is not None:
+        with st.expander(f"💥 Prueba de Aplastamiento (Mínimo requerido: > {min_aplastamiento}%)"):
+            col_a1, col_a2, col_a3 = st.columns(3)
+            for i, col in enumerate([col_a1, col_a2, col_a3]):
+                with col:
+                    with st.container(border=True):
+                        st.markdown(f"**Probeta {i+1}**")
+                        ai = st.number_input("Ai (Inicial)", value=None, format="%.2f", step=0.1, key=f"ai_{i}_{tab_key}")
+                        af = st.number_input("AF (Final)", value=None, format="%.2f", step=0.1, key=f"af_{i}_{tab_key}")
+                        esp1 = st.number_input("Esp1", value=None, format="%.2f", step=0.1, key=f"esp1_{i}_{tab_key}")
+                        esp2 = st.number_input("Esp2", value=None, format="%.2f", step=0.1, key=f"esp2_{i}_{tab_key}")
+                        if all(x is not None for x in [ai, af, esp1, esp2]) and ai > 0:
+                            x_val = (af - esp1 - esp2) / ai
+                            pct = (1 - x_val) * 100
+                            aplastamiento_inputs.append(pct)
+                            st.info(f"Resultado: {pct:.1f}%")
+        st.divider()
+
+    col_btns1, col_btns2 = st.columns([3, 1])
+    with col_btns1:
+        evaluar_btn = st.button("🚀 EVALUAR MEDIDAS", type="primary", use_container_width=True, key=f"btn_eval_{tab_key}")
+    with col_btns2:
+        st.button("🧹 Limpiar Todo", on_click=limpiar_campos, args=(tab_key,), use_container_width=True, key=f"btn_clean_{tab_key}")
+
+    # Botón para abrir el cuestionario integrado justo debajo del área de evaluación
+    if st.button("📝 Cuestionario de Turno", type="primary", use_container_width=True, key=f"btn_cuestionario_{tab_key}"):
+        dialogo_entrega_turno()
+
+    if evaluar_btn:
+        diams_raw = [d1, d2, d3, d4]
+        esps_raw = [e1, e2, e3, e4]
+        
+        diams_filled = [d for d in diams_raw if d is not None]
+        esps_filled = [e for e in esps_raw if e is not None]
+        
+        hay_datos_principales = len(diams_filled) > 0 or len(esps_filled) > 0
+        hay_aplastamiento = len(aplastamiento_inputs) > 0
+        
+        if not hay_datos_principales and not hay_aplastamiento:
+            st.warning("⚠️ No has ingresado ninguna medición para evaluar.")
+        else:
+            fallos = []
+            prom_diam = None
+            ovalidad = None
+            prom_esp = None
+            
+            if len(diams_filled) > 0:
+                if len(diams_filled) < 4:
+                    fallos.append("⚠️ Faltan datos de Diámetro para realizar la evaluación de diámetros.")
+                else:
+                    prom_diam = sum(diams_filled) / len(diams_filled)
+                    min_diam = min(diams_filled)
+                    max_diam = max(diams_filled)
+                    ovalidad = max(abs(max_diam - prom_diam), abs(min_diam - prom_diam))
+                    
+                    if not (reglas["diam_min"] <= prom_diam <= reglas["diam_max"]):
+                        fallos.append(f"**Diámetro Promedio** ({prom_diam:.2f} mm) fuera de rango ({reglas['diam_min']:.2f} a {reglas['diam_max']:.2f})")
+                    if ovalidad > reglas["oval_max"]:
+                        fallos.append(f"**Ovalidad** ({ovalidad:.2f} mm) excede límite ({reglas['oval_max']:.2f} mm)")
+                        
+            if len(esps_filled) > 0:
+                if len(esps_filled) < 4:
+                    fallos.append("⚠️ Faltan datos de Espesor para realizar la evaluación de espesores.")
+                else:
+                    prom_esp = sum(esps_filled) / len(esps_filled)
+                    
+                    if not (reglas["esp_min"] <= prom_esp <= reglas["esp_max"]):
+                        fallos.append(f"**Espesor Promedio** ({prom_esp:.2f} mm) fuera de rango ({reglas['esp_min']:.2f} a {reglas['esp_max']:.2f})")
+                        
+                    if validar_espesor_individual:
+                        for i, esp in enumerate(esps_filled):
+                            if not (reglas["esp_min"] <= esp <= reglas["esp_max"]):
+                                fallos.append(f"**Espesor {i+1} individual** ({esp:.2f} mm) crítico fuera de rango ({reglas['esp_min']:.2f} a {reglas['esp_max']:.2f})")
+                                
+            prom_aplastamiento = None
+            if min_aplastamiento is not None:
+                if len(aplastamiento_inputs) > 0:
+                    if len(aplastamiento_inputs) < 3:
+                        fallos.append("⚠️ Faltan datos en la prueba de Aplastamiento (requiere 3 probetas).")
+                    else:
+                        prom_aplastamiento = sum(aplastamiento_inputs) / len(aplastamiento_inputs)
+                        if prom_aplastamiento <= min_aplastamiento:
+                            fallos.append(f"**Aplastamiento Promedio** ({prom_aplastamiento:.1f}%) no cumple el mínimo requerido (> {min_aplastamiento}%).")
+                        for i, pct in enumerate(aplastamiento_inputs):
+                            if pct <= min_aplastamiento:
+                                fallos.append(f"**Aplastamiento Probeta {i+1}** ({pct:.1f}%) no cumple el mínimo requerido (> {min_aplastamiento}%).")
+                            
+            st.divider()
+            st.write("### 📝 Datos Calculados")
+            
+            cols = st.columns(4)
+            if prom_diam is not None:
+                cols[0].metric("Diámetro Promedio", f"{prom_diam:.2f} mm")
+                cols[1].metric("Ovalidad Calculada", f"{ovalidad:.2f} mm")
+            if prom_esp is not None:
+                cols[2].metric("Espesor Promedio", f"{prom_esp:.2f} mm")
+            if prom_aplastamiento is not None:
+                cols[3].metric("Aplastamiento Prom.", f"{prom_aplastamiento:.1f}%")
+
+            dictamen_final = "RECHAZADO" if fallos else "PASADO"
+            if fallos:
+                st.error("<div class='big-title'>RECHAZADO</div>", icon="🚫")
+                st.error("#### Motivos de Falla:")
+                for fallo in fallos:
+                    st.markdown(f"- ❌ {fallo}")
+            else:
+                st.success("<div class='big-title'>PASADO</div>", icon="✅")
+                st.success("✨ ¡Excelente! Las mediciones evaluadas cumplen con la norma.")
+                
+            datos_registro = {
+                "fecha": datetime.now().strftime("%d/%m/%Y"),
+                "hora": datetime.now().strftime("%H:%M:%S"),
+                "tipo": tab_key.upper(),
+                "clave": nombre_tubo,
+                "prom_diam": f"{prom_diam:.2f}" if prom_diam is not None else "NA",
+                "ovalidad": f"{ovalidad:.2f}" if ovalidad is not None else "NA",
+                "prom_esp": f"{prom_esp:.2f}" if prom_esp is not None else "NA",
+                "aplastamiento": f"{prom_aplastamiento:.1f}%" if prom_aplastamiento is not None else "NA",
+                "resultado": dictamen_final,
+                "motivos": " | ".join(fallos).replace("**", "") if fallos else "Ninguno"
+            }
+            threading.Thread(target=enviar_app_google_sheets, args=(datos_registro,)).start()
+
+# --- Tab Layout ---
+tab_cpvc, tab_estante, tab_pvc, tab_pvc_rd, tab_ppr, tab_cespol, tab_rafia, tab_equipos = st.tabs([
+    "CPVC", "Tubo de Estante", "PVC Cédula 40", "PVC RD", "PPR", "Tubo de Céspol", "Rafia", "Equipos de medición"
+])
+
+with tab_cpvc:
+    clave = st.selectbox("📌 Seleccione Clave:", list(REFERENCE_DATA_CPVC.keys()), key="sel_cpvc")
+    st.divider()
+    render_tab(REFERENCE_DATA_CPVC[clave], "cpvc", min_aplastamiento=80, nombre_tubo=clave)
+
+with tab_estante:
+    st.markdown("#### 📌 Especificaciones Fijas: Tubo de Estante")
+    st.divider()
+    render_tab(REGLAS_TUBO, "tubo", nombre_tubo="Tubo de Estante")
+
+with tab_pvc:
+    clave_pvc = st.selectbox("📌 Seleccione Clave:", list(REFERENCE_DATA_PVC.keys()), key="sel_pvc")
+    st.divider()
+    render_tab(REFERENCE_DATA_PVC[clave_pvc], "pvc", min_aplastamiento=60, nombre_tubo=clave_pvc)
+
+with tab_pvc_rd:
+    clave_pvc_rd = st.selectbox("📌 Seleccione Clave:", list(REFERENCE_DATA_PVC_RD.keys()), key="sel_pvc_rd")
+    st.divider()
+    render_tab(REFERENCE_DATA_PVC_RD[clave_pvc_rd], "pvc_rd", min_aplastamiento=80, nombre_tubo=clave_pvc_rd)
+
+with tab_ppr:
+    clave_ppr = st.selectbox("📌 Seleccione Clave:", list(REFERENCE_DATA_PPR.keys()), key="sel_ppr")
+    st.divider()
+    render_tab(REFERENCE_DATA_PPR[clave_ppr], "ppr", validar_espesor_individual=False, nombre_tubo=clave_ppr)
+
+with tab_cespol:
+    clave_cespol = st.selectbox("📌 Seleccione Clave:", list(REFERENCE_DATA_CESPOL.keys()), key="sel_cespol")
+    st.divider()
+    render_tab(REFERENCE_DATA_CESPOL[clave_cespol], "cespol", nombre_tubo=clave_cespol)
+
+with tab_rafia:
+    st.markdown("#### 📌 Especificaciones de Rafia")
+    st.divider()
+    
+    col_raf_in, col_space = st.columns([1, 1])
+    with col_raf_in:
+        peso_rafia = st.number_input("Ingresar Peso (g)", value=None, format="%.2f", step=0.1, key="peso_rafia")
+    
+    col_btns1, col_btns2 = st.columns([3, 1])
+    with col_btns1:
+        evaluar_rafia_btn = st.button("🚀 CALCULAR", type="primary", use_container_width=True, key="btn_eval_rafia")
+    with col_btns2:
+        st.button("🧹 Limpiar Todo", on_click=limpiar_rafia, use_container_width=True, key="btn_clean_rafia")
+    
+    if st.button("📝 Cuestionario de Turno", type="primary", use_container_width=True, key="btn_cuestionario_rafia"):
+        dialogo_entrega_turno()
+    
+    if evaluar_rafia_btn:
+        if peso_rafia is not None and peso_rafia > 0:
+            peso_por_metro = peso_rafia / 9
+            denier = peso_por_metro * 9000
+            
+            st.divider()
+            st.write("### 📝 Resultados Calculados")
+            
+            c1, c2 = st.columns(2)
+            with c1:
+                st.markdown(f"<div class='rafia-card'><div class='rafia-title'>Peso por metro (g/m)</div><div class='rafia-value'>{peso_por_metro:.2f}</div></div>", unsafe_allow_html=True)
+            with c2:
+                st.markdown(f"<div class='rafia-card'><div class='rafia-title'>Denier</div><div class='rafia-value'>{denier:.0f}</div></div>", unsafe_allow_html=True)
+        else:
+            st.warning("⚠️ Ingresa un peso válido para calcular.")
+
+with tab_equipos:
+    st.header("Control de Equipos de Medición")
+    
+    # Botón de Cuestionario también disponible en Equipos
+    if st.button("📝 Cuestionario de Turno", type="primary", key="btn_cuestionario_equipos"):
+        dialogo_entrega_turno()
+    st.markdown("---")
+    
+    vencidos_tot, por_vencer_tot = verificar_equipos(dias_aviso=30)
+    msg = "*Reporte de Equipos - Control de Calidad*\n"
+    if vencidos_tot:
+        msg += "\n*🔴 Equipos Vencidos:*\n"
+        for eq, _ in vencidos_tot:
+            msg += f"- {eq['descripcion']} ({eq['codigo']}) - Venció: {eq['proxima_calibracion']}\n"
+    if por_vencer_tot:
+        msg += "\n*🟡 Equipos por Vencer:*\n"
+        for eq, _ in por_vencer_tot:
+            msg += f"- {eq['descripcion']} ({eq['codigo']}) - Vence: {eq['proxima_calibracion']}\n"
+    if not vencidos_tot and not por_vencer_tot:
+        msg += "\n✅ Todos los equipos están al día."
+        
+    numero_jefe = "525570708905"
+    wa_link = f"https://wa.me/{numero_jefe}?text={urllib.parse.quote(msg)}"
+
+    es_lunes = datetime.now().weekday() == 0
+    falta_enviar = "wa_enviado_hoy" not in st.session_state or st.session_state["wa_enviado_hoy"] != datetime.now().date()
+
+    if es_lunes and falta_enviar:
+        st.info("📅 **RECORDATORIO:** Es Lunes. No olvides enviar el reporte de equipos de esta semana.")
+        col_wa1, col_wa2 = st.columns([2, 1])
+        with col_wa1:
+            st.markdown(f'<a href="{wa_link}" target="_blank" style="display: inline-block; padding: 12px 24px; background-color: #25D366; color: white; text-align: center; text-decoration: none; font-size: 16px; border-radius: 8px; font-weight: bold; width: 100%;">📲 Abrir WhatsApp y Enviar Reporte</a>', unsafe_allow_html=True)
+        with col_wa2:
+            if st.button("✅ Marcar como Enviado", use_container_width=True):
+                st.session_state["wa_enviado_hoy"] = datetime.now().date()
+                st.rerun()
+        st.markdown("---")
+    else:
+        st.markdown(f'<a href="{wa_link}" target="_blank" style="display: inline-block; padding: 10px 20px; background-color: #128C7E; color: white; text-align: center; text-decoration: none; font-size: 14px; border-radius: 6px; font-weight: bold;">📤 Enviar Reporte Manualmente</a>', unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
+    
+    vencidos, por_vencer = verificar_equipos(dias_aviso=30)
+    if vencidos or por_vencer:
+        total_alertas = len(vencidos) + len(por_vencer)
+        with st.container():
+            st.subheader(f"🔔 Alertas ({total_alertas})")
+            if vencidos:
+                for eq, dias in vencidos:
+                    st.error(f"🔴 **VENCIDO ({abs(dias)} días):** {eq['descripcion']} ({eq['codigo']}) - Venció el {eq['proxima_calibracion']}")
+            if por_vencer:
+                for eq, dias in por_vencer:
+                    st.warning(f"🟡 **POR VENCER (en {dias} días):** {eq['descripcion']} ({eq['codigo']}) - Vence el {eq['proxima_calibracion']}")
+    else:
+        st.success("✅ Todos los equipos activos están al día con su calibración.")
+        
+    st.markdown("---")
+    st.subheader("Inventario de Equipos")
+    
+    df_equipos = pd.DataFrame(EQUIPMENT_DATA)
+    if not df_equipos.empty:
+        df_equipos.columns = ["Código", "Descripción", "Próxima Calibración", "Ubicación", "Status"]
+    
+    st.dataframe(df_equipos, use_container_width=True, hide_index=True)
