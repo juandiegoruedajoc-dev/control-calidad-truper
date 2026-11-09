@@ -818,7 +818,34 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 with st.container():
-    with st.bottom():
+    # Inyectar estilo CSS para el botón flotante en la esquina inferior derecha
+st.markdown("""
+    <style>
+    .floating-button {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        z-index: 9999;
+        background-color: #ff4b4b;
+        color: white;
+        padding: 15px 20px;
+        border-radius: 50px;
+        text-align: center;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        font-weight: bold;
+        text-decoration: none;
+    }
+    .floating-button:hover {
+        background-color: #ff2121;
+        color: white;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# O puedes usar un botón nativo en el sidebar o en un contenedor fijo:
+if st.button("📝 Abrir Cuestionario de Turno", type="primary"):
+    # Aquí abres el diálogo o el formulario
+    pass
         if st.button("📝 Entrega de Turno", key="fab_turno", use_container_width=False):
             dialogo_entrega_turno()
 
