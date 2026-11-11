@@ -606,21 +606,15 @@ with tab_entrega_turno:
 
     st.divider()
 
-    # ── 7. FOTOGRAFÍA DE INSTRUMENTOS ────────────────────────
-    st.markdown("**7. Fotografía con etiquetas visibles y en buen estado de los instrumentos de medición** *(Semanal, APLICA SOLO 2T)*")
-    col_7a, col_7b = st.columns(2)
-    with col_7a:
-        st.markdown("📷 Tomar foto con cámara")
-        foto_instrumentos = st.camera_input("Foto instrumentos", key="et_foto_inst", label_visibility="collapsed")
-    with col_7b:
-        st.markdown("📎 Cargar archivo")
-        archivo_instrumentos = st.file_uploader(
-            "Subir archivo de instrumentos",
-            type=["png", "jpg", "jpeg", "pdf"],
-            key="et_arch_inst", label_visibility="collapsed"
-        )
-        if archivo_instrumentos:
-            st.success(f"✔ {archivo_instrumentos.name}")
+    # ── 7. CARGA DE ARCHIVO DE INSTRUMENTOS ──────────────────
+    st.markdown("**7. Cargar archivo con etiquetas visibles y en buen estado de los instrumentos de medición** *(Semanal, APLICA SOLO 2T)*")
+    archivo_instrumentos = st.file_uploader(
+        "Subir archivo de instrumentos",
+        type=["png", "jpg", "jpeg", "pdf"],
+        key="et_arch_inst"
+    )
+    if archivo_instrumentos:
+        st.success(f"✔ Archivo cargado: {archivo_instrumentos.name}")
 
     st.divider()
 
@@ -648,44 +642,32 @@ with tab_entrega_turno:
     st.divider()
 
     # ── 10. SEGUIMIENTO 5'S ───────────────────────────────────
-    st.markdown("**10. Seguimiento 5's (Fotografía del área libre de muestras y/o scrap) \\*** *(Diario)*")
-    col_10a, col_10b = st.columns(2)
-    with col_10a:
-        st.markdown("📷 Tomar foto del área")
-        foto_5s = st.camera_input("Foto 5's", key="et_foto_5s", label_visibility="collapsed")
-    with col_10b:
-        st.markdown("📎 Cargar archivo 5's")
-        archivo_5s = st.file_uploader(
-            "Subir archivo 5's",
-            type=["png", "jpg", "jpeg", "pdf"],
-            key="et_arch_5s", label_visibility="collapsed"
-        )
-        if archivo_5s:
-            st.success(f"✔ {archivo_5s.name}")
+    st.markdown("**10. Seguimiento 5's (Cargar archivo del área libre de muestras y/o scrap) \\*** *(Diario)*")
+    archivo_5s = st.file_uploader(
+        "Subir archivo 5's",
+        type=["png", "jpg", "jpeg", "pdf"],
+        key="et_arch_5s"
+    )
+    if archivo_5s:
+        st.success(f"✔ Archivo cargado: {archivo_5s.name}")
 
     st.divider()
 
     # ── 11. ÁREA DE CUARENTENA ────────────────────────────────
-    st.markdown("**11. Área de cuarentena (Fotografía del área de cuarentena correspondiente libre de obstáculos) \\***")
+    st.markdown("**11. Área de cuarentena (Cargar archivo del área de cuarentena correspondiente libre de obstáculos) \\***")
     df_cuarentena = pd.DataFrame({
         "Inspector": ["Inspector 1 (CPVC / Carretes / Estante)", "Inspector 2 (PPR / Rafia)", "Inspector 3 (PVC / Canaleta / Trenzado)"],
         "Área Correspondiente": ["Área Estante", "Área Cuerda y Rafia", "Área Canaleta y Perfilería"]
     })
     st.dataframe(df_cuarentena, use_container_width=True, hide_index=True)
 
-    col_11a, col_11b = st.columns(2)
-    with col_11a:
-        st.markdown("📷 Tomar foto cuarentena")
-        foto_cuarentena = st.camera_input("Foto cuarentena", key="et_foto_cuarentena", label_visibility="collapsed")
-    with col_11b:
-        st.markdown("📎 Cargar archivo cuarentena")
-        archivo_cuarentena = st.file_uploader(
-            "Subir archivo cuarentena",
-            type=["png", "jpg", "jpeg", "pdf"],
-            key="et_arch_cuarentena", label_visibility="collapsed"
-        )
-        if archivo_cuarentena:
-            st.success(f"✔ {archivo_cuarentena.name}")
+    archivo_cuarentena = st.file_uploader(
+        "Subir archivo cuarentena",
+        type=["png", "jpg", "jpeg", "pdf"],
+        key="et_arch_cuarentena"
+    )
+    if archivo_cuarentena:
+        st.success(f"✔ Archivo cargado: {archivo_cuarentena.name}")
 
     st.divider()
 
