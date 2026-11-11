@@ -1,6 +1,13 @@
 import streamlit as st
 import pandas as pd
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+
+# Hora local (Ciudad de México, UTC-6 fijo, sin horario de verano desde 2022).
+# La app corre en un servidor con hora UTC; sin esto, las horas salían 6 horas adelante.
+ZONA_MEXICO = timezone(timedelta(hours=-6))
+
+def ahora_local():
+    return datetime.now(ZONA_MEXICO)
 import threading
 import requests
 import json
@@ -169,7 +176,7 @@ if "app_iniciada" not in st.session_state:
 EQUIPMENT_DATA = cargar_equipos()
 
 def verificar_equipos(dias_aviso=30):
-    hoy = datetime.now().date()
+    hoy = ahora_local().date()
     vencidos = []
     por_vencer = []
     
@@ -423,8 +430,8 @@ def render_tab(reglas, tab_key, validar_espesor_individual=True, min_aplastamien
                 st.success("✨ ¡Excelente! Las mediciones evaluadas cumplen con la norma.")
                 
             datos_registro = {
-                "fecha": datetime.now().strftime("%d/%m/%Y"),
-                "hora": datetime.now().strftime("%H:%M:%S"),
+                "fecha": ahora_local().strftime("%d/%m/%Y"),
+                "hora": ahora_local().strftime("%H:%M:%S"),
                 "tipo": tab_key.upper(),
                 "clave": nombre_tubo,
                 "prom_diam": f"{prom_diam:.2f}" if prom_diam is not None else "NA",
@@ -520,8 +527,8 @@ with tab_equipos:
     numero_jefe = "525570708905"
     wa_link = f"https://wa.me/{numero_jefe}?text={urllib.parse.quote(msg)}"
 
-    es_lunes = datetime.now().weekday() == 0
-    falta_enviar = "wa_enviado_hoy" not in st.session_state or st.session_state["wa_enviado_hoy"] != datetime.now().date()
+    es_lunes = ahora_local().weekday() == 0
+    falta_enviar = "wa_enviado_hoy" not in st.session_state or st.session_state["wa_enviado_hoy"] != ahora_local().date()
 
     if es_lunes and falta_enviar:
         st.info("📅 **RECORDATORIO:** Es Lunes. No olvides enviar el reporte de equipos de esta semana.")
@@ -530,7 +537,7 @@ with tab_equipos:
             st.markdown(f'<a href="{wa_link}" target="_blank" style="display: inline-block; padding: 12px 24px; background-color: #25D366; color: white; text-align: center; text-decoration: none; font-size: 16px; border-radius: 8px; font-weight: bold; width: 100%;">📲 Abrir WhatsApp y Enviar Reporte</a>', unsafe_allow_html=True)
         with col_wa2:
             if st.button("✅ Marcar como Enviado", use_container_width=True):
-                st.session_state["wa_enviado_hoy"] = datetime.now().date()
+                st.session_state["wa_enviado_hoy"] = ahora_local().date()
                 st.rerun()
         st.markdown("---")
     else:
@@ -765,8 +772,8 @@ with tab_entrega_turno:
                 st.markdown(f"- ❌ {err}")
         else:
             datos_cuestionario = {
-                "fecha": datetime.now().strftime("%d/%m/%Y"),
-                "hora": datetime.now().strftime("%H:%M:%S"),
+                "fecha": ahora_local().strftime("%d/%m/%Y"),
+                "hora": ahora_local().strftime("%H:%M:%S"),
                 "tipo": "ENTREGA_TURNO",
                 "nombre": nombre,
                 "turno": turno,
