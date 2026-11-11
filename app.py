@@ -17,6 +17,41 @@ def enviar_app_google_sheets(datos):
     except Exception:
         pass
 
+# --- Fotos de la entrega de turno: se comprimen y se mandan al segundo webhook ---
+# El segundo webhook (Apps Script "Fotos entrega de turno") guarda las fotos en
+# Drive y registra la entrega completa; un proceso aparte las pasa a la base Excel.
+# Pega aquí la URL de la aplicación web del script cuando esté creado.
+FOTOS_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbz7Y0-vqtQzHoEtdI1DPFx53JbYr5I6BSHHK9WfewbVl9YOONTDcicbFdQHCFQ1ExS-Sw/exec"
+
+def foto_a_base64(archivo):
+    """Comprime una foto a 1024 px JPEG calidad 70 y la devuelve en base64. Un PDF se envía tal cual."""
+    if archivo is None:
+        return None
+    try:
+        datos = archivo.getvalue()
+    except Exception:
+        return None
+    nombre = getattr(archivo, "name", "foto.jpg")
+    if nombre.lower().endswith(".pdf"):
+        return {"nombre": nombre, "tipo": "application/pdf", "datos": base64.b64encode(datos).decode("utf-8")}
+    try:
+        import io
+        from PIL import Image
+        img = Image.open(io.BytesIO(datos)).convert("RGB")
+        img.thumbnail((1024, 1024), Image.LANCZOS)
+        buf = io.BytesIO()
+        img.save(buf, "JPEG", quality=70, optimize=True)
+        return {"nombre": nombre.rsplit(".", 1)[0] + ".jpg", "tipo": "image/jpeg", "datos": base64.b64encode(buf.getvalue()).decode("utf-8")}
+    except Exception:
+        return {"nombre": nombre, "tipo": "image/jpeg", "datos": base64.b64encode(datos).decode("utf-8")}
+
+def enviar_fotos_entrega(datos):
+    try:
+        if FOTOS_WEBHOOK_URL and FOTOS_WEBHOOK_URL != "TU_URL_DEL_SCRIPT_DE_FOTOS":
+            requests.post(FOTOS_WEBHOOK_URL, json=datos, timeout=30)
+    except Exception:
+        pass
+
 # Configuración de la página
 st.set_page_config(
     page_title='Cálculos de tubos de perfileria', 
@@ -596,41 +631,56 @@ with tab_entrega_turno:
     })
     st.dataframe(df_instrumentos, use_container_width=True, hide_index=True)
 
-    st.markdown("**Estado general de los instrumentos por Inspector \\***")
-    
+    st.markdown("**¿Qué inspector entrega el turno?** *")
+    inspector_entrega = st.radio(
+        "Selecciona el inspector que entrega",
+        ["Inspector 1", "Inspector 2", "Inspector 3"],
+        horizontal=True, index=None, key="et_inspector_entrega", label_visibility="collapsed"
+    )
+    if not inspector_entrega:
+        errores.append("6. Inspector que entrega el turno")
+
+    st.markdown("**Estado general de los instrumentos del inspector que entrega** *")
+
     inspectores_data = {}
     inspectores_nombres = ["Inspector 1", "Inspector 2", "Inspector 3"]
-    
-    for insp in inspectores_nombres:
-        st.markdown(f"**{insp}**")
+
+    if inspector_entrega:
         estado_insp = st.radio(
-            f"Estado para {insp}",
+            f"Estado para {inspector_entrega}",
             ["OK", "NOK", "Otras"],
-            horizontal=True, index=None, key=f"et_estado_{insp}"
+            horizontal=True, index=None, key=f"et_estado_{inspector_entrega}"
         )
-        
+
         obs_insp = ""
         archivo_insp = None
-        
+
         if estado_insp in ["NOK", "Otras"]:
-            obs_insp = st.text_input(f"Observaciones / Detalle para {insp}", key=f"et_obs_{insp}")
+            obs_insp = st.text_input(f"Observaciones / Detalle para {inspector_entrega}", key=f"et_obs_{inspector_entrega}")
             archivo_insp = st.file_uploader(
-                f"Cargar archivo / foto de evidencia para {insp}",
+                f"Cargar archivo / foto de evidencia para {inspector_entrega}",
                 type=["png", "jpg", "jpeg", "pdf"],
-                key=f"et_arch_{insp}"
+                key=f"et_arch_{inspector_entrega}"
             )
             if archivo_insp:
                 st.success(f"✔ Archivo cargado: {archivo_insp.name}")
-        
+
         if not estado_insp:
-            errores.append(f"6. Instrumentos de medición ({insp})")
-            
-        inspectores_data[insp] = {
+            errores.append(f"6. Instrumentos de medición ({inspector_entrega})")
+
+        inspectores_data[inspector_entrega] = {
             "estado": estado_insp,
             "observaciones": obs_insp,
             "archivo": archivo_insp
         }
-        st.markdown("---")
+
+    for insp in inspectores_nombres:
+        if insp != inspector_entrega:
+            inspectores_data[insp] = {
+                "estado": "No aplica",
+                "observaciones": "",
+                "archivo": None
+            }
 
     st.divider()
 
@@ -731,4 +781,27 @@ with tab_entrega_turno:
                 "observaciones": observaciones
             }
             threading.Thread(target=enviar_app_google_sheets, args=(datos_cuestionario,)).start()
+            fotos = []
+            archivo_insp_entrega = inspectores_data.get(inspector_entrega, {}).get("archivo") if inspector_entrega else None
+            f = foto_a_base64(archivo_insp_entrega)
+            if f:
+                f["punto"] = "6. Instrumentos " + str(inspector_entrega)
+                fotos.append(f)
+            f = foto_a_base64(archivo_instrumentos)
+            if f:
+                f["punto"] = "7. Archivo de instrumentos"
+                fotos.append(f)
+            f = foto_a_base64(archivo_5s)
+            if f:
+                f["punto"] = "10. Seguimiento 5's"
+                fotos.append(f)
+            f = foto_a_base64(archivo_cuarentena)
+            if f:
+                f["punto"] = "11. Área de cuarentena"
+                fotos.append(f)
+            if fotos:
+                datos_fotos = dict(datos_cuestionario)
+                datos_fotos["inspector_entrega"] = inspector_entrega
+                datos_fotos["fotos"] = fotos
+                threading.Thread(target=enviar_fotos_entrega, args=(datos_fotos,)).start()
             st.success("✨ ¡Cuestionario de Entrega de Turno enviado correctamente!")
