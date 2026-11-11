@@ -252,6 +252,21 @@ REFERENCE_DATA_CESPOL = {
     'Céspol 1-1/2"': {"diam_min": 37.20, "diam_max": 37.60, "oval_max": 0.50, "esp_min": 1.30, "esp_max": 1.70},
 }
 
+# --- Especificaciones de Rafia (documento QDoc Truper, págs. 1-2) ---
+# Calibre: peso por metro (g/m) de la muestra de 9 m. Denier: g/9000 m.
+# Cada código trae su clave, trazabilidad (color y calibre) y sus rangos.
+ESPEC_RAFIA = {
+    "44492 - RAF-290 (Blanco 2.2)": {"clave": "RAF-290", "trazabilidad": "Blanco 2.2", "gm_min": 2.11, "gm_max": 2.28, "den_min": 19008, "den_max": 20592},
+    "45032 - RAF-250 (Blanco 2.2)": {"clave": "RAF-250", "trazabilidad": "Blanco 2.2", "gm_min": 2.11, "gm_max": 2.28, "den_min": 19008, "den_max": 20592},
+    "45037 - RAF-245 (Blanco 2.2)": {"clave": "RAF-245", "trazabilidad": "Blanco 2.2", "gm_min": 2.11, "gm_max": 2.28, "den_min": 19008, "den_max": 20592},
+    "45031 - RAF-290C (Amarillo 2.2)": {"clave": "RAF-290C", "trazabilidad": "Amarillo 2.2", "gm_min": 2.11, "gm_max": 2.28, "den_min": 19008, "den_max": 20592},
+    "45033 - RAF-250C (Amarillo, Azul, Negro, Naranja, Rojo, Verde 2.2)": {"clave": "RAF-250C", "trazabilidad": "Amarillo, Azul, Negro, Naranja, Rojo, Verde 2.2", "gm_min": 2.11, "gm_max": 2.28, "den_min": 19008, "den_max": 20592},
+    "40053 - RAF-345 (Blanco 3)": {"clave": "RAF-345", "trazabilidad": "Blanco 3", "gm_min": 2.88, "gm_max": 3.12, "den_min": 25920, "den_max": 28080},
+    "45038 - RAF-445 (Blanco 3.8)": {"clave": "RAF-445", "trazabilidad": "Blanco 3.8", "gm_min": 3.65, "gm_max": 3.95, "den_min": 32832, "den_max": 35568},
+    "40054 - RAF-645 (Blanco 6)": {"clave": "RAF-645", "trazabilidad": "Blanco 6", "gm_min": 5.76, "gm_max": 6.24, "den_min": 51840, "den_max": 56160},
+    "40062 - RAF-845 (Blanco 8)": {"clave": "RAF-845", "trazabilidad": "Blanco 8", "gm_min": 7.68, "gm_max": 8.32, "den_min": 69120, "den_max": 74880},
+}
+
 def limpiar_campos(tab_key):
     keys_to_clear = []
     for key in ["d1", "d2", "d3", "d4", "e1", "e2", "e3", "e4"]:
@@ -270,6 +285,8 @@ def limpiar_campos(tab_key):
 def limpiar_rafia():
     if "peso_rafia" in st.session_state:
         st.session_state["peso_rafia"] = None
+    if "codigo_rafia" in st.session_state:
+        st.session_state["codigo_rafia"] = list(ESPEC_RAFIA.keys())[0]
 
 def render_tab(reglas, tab_key, validar_espesor_individual=True, min_aplastamiento=None, nombre_tubo="Desconocido"):
     base_diam = int(reglas['diam_min'])
@@ -481,32 +498,64 @@ with tab_cespol:
 with tab_rafia:
     st.markdown("#### 📌 Especificaciones de Rafia")
     st.divider()
-    
+
+    codigo_rafia = st.selectbox("📌 Seleccione Código / Clave:", list(ESPEC_RAFIA.keys()), key="codigo_rafia")
+    espec = ESPEC_RAFIA[codigo_rafia]
+    st.info(f"**{espec['clave']}** — {espec['trazabilidad']}  |  Calibre: **{espec['gm_min']:.2f} – {espec['gm_max']:.2f} g/m**  |  Denier: **{espec['den_min']:,} – {espec['den_max']:,} g/9000 m**")
+
     col_raf_in, col_space = st.columns([1, 1])
     with col_raf_in:
-        peso_rafia = st.number_input("Ingresar Peso (g)", value=None, format="%.2f", step=0.1, key="peso_rafia")
-    
+        peso_rafia = st.number_input("Ingresar Peso (g) — muestra de 9 m", value=None, format="%.2f", step=0.1, key="peso_rafia")
+
     col_btns1, col_btns2 = st.columns([3, 1])
     with col_btns1:
         evaluar_rafia_btn = st.button("🚀 CALCULAR", type="primary", use_container_width=True, key="btn_eval_rafia")
     with col_btns2:
         st.button("🧹 Limpiar Todo", on_click=limpiar_rafia, use_container_width=True, key="btn_clean_rafia")
-    
+
     if evaluar_rafia_btn:
         if peso_rafia is not None and peso_rafia > 0:
             peso_por_metro = peso_rafia / 9
             denier = peso_por_metro * 9000
-            
+
+            gm_ok = espec["gm_min"] <= peso_por_metro <= espec["gm_max"]
+            den_ok = espec["den_min"] <= denier <= espec["den_max"]
+            resultado_rafia = "PASADO" if (gm_ok and den_ok) else "RECHAZADO"
+
             st.divider()
             st.write("### 📝 Resultados Calculados")
-            
+
             c1, c2 = st.columns(2)
             with c1:
                 st.markdown(f"<div class='rafia-card'><div class='rafia-title'>Peso por metro (g/m)</div><div class='rafia-value'>{peso_por_metro:.2f}</div></div>", unsafe_allow_html=True)
             with c2:
                 st.markdown(f"<div class='rafia-card'><div class='rafia-title'>Denier</div><div class='rafia-value'>{denier:.0f}</div></div>", unsafe_allow_html=True)
+
+            st.write(f"**Calibre:** {peso_por_metro:.2f} g/m — Especificación {espec['gm_min']:.2f} – {espec['gm_max']:.2f} g/m {'✅' if gm_ok else '❌'}")
+            st.write(f"**Denier:** {denier:,.0f} — Especificación {espec['den_min']:,} – {espec['den_max']:,} g/9000 m {'✅' if den_ok else '❌'}")
+
+            if resultado_rafia == "PASADO":
+                st.success(f"✅ **{codigo_rafia} — PASADO**")
+            else:
+                motivos_rafia = []
+                if not gm_ok:
+                    motivos_rafia.append("calibre fuera de rango")
+                if not den_ok:
+                    motivos_rafia.append("denier fuera de rango")
+                st.error(f"❌ **{codigo_rafia} — RECHAZADO** ({', '.join(motivos_rafia)})")
         else:
             st.warning("⚠️ Ingresa un peso válido para calcular.")
+
+    with st.expander("📋 Ver tabla completa de especificaciones"):
+        st.dataframe(
+            pd.DataFrame([
+                {"Código": k.split(" - ")[0], "Clave": v["clave"], "Trazabilidad": v["trazabilidad"],
+                 "Calibre (g/m)": f"{v['gm_min']:.2f} – {v['gm_max']:.2f}",
+                 "Denier (g/9000 m)": f"{v['den_min']:,} – {v['den_max']:,}"}
+                for k, v in ESPEC_RAFIA.items()
+            ]),
+            use_container_width=True, hide_index=True,
+        )
 
 with tab_equipos:
     st.header("Control de Equipos de Medición")
