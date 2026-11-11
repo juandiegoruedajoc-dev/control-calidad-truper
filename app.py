@@ -59,6 +59,19 @@ def enviar_fotos_entrega(datos):
     except Exception:
         pass
 
+# --- Registro de Rafia en la base: cada medición se guarda en la hoja "Rafia" ---
+# El webhook (Apps Script "Rafia base de datos") registra la medición en la hoja
+# "Rafia" de la base de datos app calidad, sin tocar la hoja de tubos (Hoja 1).
+# Pega aquí la URL de la aplicación web del script cuando esté creado.
+RAFIA_WEBHOOK_URL = "TU_URL_DEL_SCRIPT_DE_RAFIA"
+
+def enviar_rafia(datos):
+    try:
+        if RAFIA_WEBHOOK_URL and RAFIA_WEBHOOK_URL != "TU_URL_DEL_SCRIPT_DE_RAFIA":
+            requests.post(RAFIA_WEBHOOK_URL, json=datos, timeout=10)
+    except Exception:
+        pass
+
 # Configuración de la página
 st.set_page_config(
     page_title='Cálculos de tubos de perfileria', 
@@ -254,17 +267,14 @@ REFERENCE_DATA_CESPOL = {
 
 # --- Especificaciones de Rafia (documento QDoc Truper, págs. 1-2) ---
 # Calibre: peso por metro (g/m) de la muestra de 9 m. Denier: g/9000 m.
-# Cada código trae su clave, trazabilidad (color y calibre) y sus rangos.
+# La especificación depende solo de la trazabilidad (calibre): todos los
+# códigos 2.2 comparten la misma, sin importar si es blanco o de color.
 ESPEC_RAFIA = {
-    "44492 - RAF-290 (Blanco 2.2)": {"clave": "RAF-290", "trazabilidad": "Blanco 2.2", "gm_min": 2.11, "gm_max": 2.28, "den_min": 19008, "den_max": 20592},
-    "45032 - RAF-250 (Blanco 2.2)": {"clave": "RAF-250", "trazabilidad": "Blanco 2.2", "gm_min": 2.11, "gm_max": 2.28, "den_min": 19008, "den_max": 20592},
-    "45037 - RAF-245 (Blanco 2.2)": {"clave": "RAF-245", "trazabilidad": "Blanco 2.2", "gm_min": 2.11, "gm_max": 2.28, "den_min": 19008, "den_max": 20592},
-    "45031 - RAF-290C (Amarillo 2.2)": {"clave": "RAF-290C", "trazabilidad": "Amarillo 2.2", "gm_min": 2.11, "gm_max": 2.28, "den_min": 19008, "den_max": 20592},
-    "45033 - RAF-250C (Amarillo, Azul, Negro, Naranja, Rojo, Verde 2.2)": {"clave": "RAF-250C", "trazabilidad": "Amarillo, Azul, Negro, Naranja, Rojo, Verde 2.2", "gm_min": 2.11, "gm_max": 2.28, "den_min": 19008, "den_max": 20592},
-    "40053 - RAF-345 (Blanco 3)": {"clave": "RAF-345", "trazabilidad": "Blanco 3", "gm_min": 2.88, "gm_max": 3.12, "den_min": 25920, "den_max": 28080},
-    "45038 - RAF-445 (Blanco 3.8)": {"clave": "RAF-445", "trazabilidad": "Blanco 3.8", "gm_min": 3.65, "gm_max": 3.95, "den_min": 32832, "den_max": 35568},
-    "40054 - RAF-645 (Blanco 6)": {"clave": "RAF-645", "trazabilidad": "Blanco 6", "gm_min": 5.76, "gm_max": 6.24, "den_min": 51840, "den_max": 56160},
-    "40062 - RAF-845 (Blanco 8)": {"clave": "RAF-845", "trazabilidad": "Blanco 8", "gm_min": 7.68, "gm_max": 8.32, "den_min": 69120, "den_max": 74880},
+    "Rafia 2.2": {"codigos": "44492, 45032, 45037, 45031, 45033", "claves": "RAF-290, RAF-250, RAF-245, RAF-290C, RAF-250C", "gm_min": 2.11, "gm_max": 2.28, "den_min": 19008, "den_max": 20592},
+    "Rafia 3": {"codigos": "40053", "claves": "RAF-345", "gm_min": 2.88, "gm_max": 3.12, "den_min": 25920, "den_max": 28080},
+    "Rafia 3.8": {"codigos": "45038", "claves": "RAF-445", "gm_min": 3.65, "gm_max": 3.95, "den_min": 32832, "den_max": 35568},
+    "Rafia 6": {"codigos": "40054", "claves": "RAF-645", "gm_min": 5.76, "gm_max": 6.24, "den_min": 51840, "den_max": 56160},
+    "Rafia 8": {"codigos": "40062", "claves": "RAF-845", "gm_min": 7.68, "gm_max": 8.32, "den_min": 69120, "den_max": 74880},
 }
 
 def limpiar_campos(tab_key):
@@ -285,8 +295,8 @@ def limpiar_campos(tab_key):
 def limpiar_rafia():
     if "peso_rafia" in st.session_state:
         st.session_state["peso_rafia"] = None
-    if "codigo_rafia" in st.session_state:
-        st.session_state["codigo_rafia"] = list(ESPEC_RAFIA.keys())[0]
+    if "trazabilidad_rafia" in st.session_state:
+        st.session_state["trazabilidad_rafia"] = list(ESPEC_RAFIA.keys())[0]
 
 def render_tab(reglas, tab_key, validar_espesor_individual=True, min_aplastamiento=None, nombre_tubo="Desconocido"):
     base_diam = int(reglas['diam_min'])
@@ -499,9 +509,9 @@ with tab_rafia:
     st.markdown("#### 📌 Especificaciones de Rafia")
     st.divider()
 
-    codigo_rafia = st.selectbox("📌 Seleccione Código / Clave:", list(ESPEC_RAFIA.keys()), key="codigo_rafia")
-    espec = ESPEC_RAFIA[codigo_rafia]
-    st.info(f"**{espec['clave']}** — {espec['trazabilidad']}  |  Calibre: **{espec['gm_min']:.2f} – {espec['gm_max']:.2f} g/m**  |  Denier: **{espec['den_min']:,} – {espec['den_max']:,} g/9000 m**")
+    trazabilidad_rafia = st.selectbox("📌 Seleccione Trazabilidad:", list(ESPEC_RAFIA.keys()), key="trazabilidad_rafia")
+    espec = ESPEC_RAFIA[trazabilidad_rafia]
+    st.info(f"**{trazabilidad_rafia}** — Códigos: {espec['codigos']} ({espec['claves']})  |  Calibre: **{espec['gm_min']:.2f} – {espec['gm_max']:.2f} g/m**  |  Denier: **{espec['den_min']:,} – {espec['den_max']:,} g/9000 m**")
 
     col_raf_in, col_space = st.columns([1, 1])
     with col_raf_in:
@@ -521,6 +531,24 @@ with tab_rafia:
             gm_ok = espec["gm_min"] <= peso_por_metro <= espec["gm_max"]
             den_ok = espec["den_min"] <= denier <= espec["den_max"]
             resultado_rafia = "PASADO" if (gm_ok and den_ok) else "RECHAZADO"
+            motivos_rafia = []
+            if not gm_ok:
+                motivos_rafia.append("calibre fuera de rango")
+            if not den_ok:
+                motivos_rafia.append("denier fuera de rango")
+
+            # Registrar la medición en la base (hoja "Rafia"), como los tubos
+            datos_rafia = {
+                "fecha": ahora_local().strftime("%d/%m/%Y"),
+                "hora": ahora_local().strftime("%H:%M:%S"),
+                "trazabilidad": trazabilidad_rafia,
+                "peso_muestra": f"{peso_rafia:.2f}",
+                "peso_por_metro": f"{peso_por_metro:.2f}",
+                "denier": f"{denier:.0f}",
+                "resultado": resultado_rafia,
+                "motivos": " | ".join(motivos_rafia) if motivos_rafia else "Ninguno"
+            }
+            threading.Thread(target=enviar_rafia, args=(datos_rafia,)).start()
 
             st.divider()
             st.write("### 📝 Resultados Calculados")
@@ -535,21 +563,16 @@ with tab_rafia:
             st.write(f"**Denier:** {denier:,.0f} — Especificación {espec['den_min']:,} – {espec['den_max']:,} g/9000 m {'✅' if den_ok else '❌'}")
 
             if resultado_rafia == "PASADO":
-                st.success(f"✅ **{codigo_rafia} — PASADO**")
+                st.success(f"✅ **{trazabilidad_rafia} — PASADO**")
             else:
-                motivos_rafia = []
-                if not gm_ok:
-                    motivos_rafia.append("calibre fuera de rango")
-                if not den_ok:
-                    motivos_rafia.append("denier fuera de rango")
-                st.error(f"❌ **{codigo_rafia} — RECHAZADO** ({', '.join(motivos_rafia)})")
+                st.error(f"❌ **{trazabilidad_rafia} — RECHAZADO** ({', '.join(motivos_rafia)})")
         else:
             st.warning("⚠️ Ingresa un peso válido para calcular.")
 
     with st.expander("📋 Ver tabla completa de especificaciones"):
         st.dataframe(
             pd.DataFrame([
-                {"Código": k.split(" - ")[0], "Clave": v["clave"], "Trazabilidad": v["trazabilidad"],
+                {"Trazabilidad": k, "Códigos": v["codigos"], "Claves": v["claves"],
                  "Calibre (g/m)": f"{v['gm_min']:.2f} – {v['gm_max']:.2f}",
                  "Denier (g/9000 m)": f"{v['den_min']:,} – {v['den_max']:,}"}
                 for k, v in ESPEC_RAFIA.items()
