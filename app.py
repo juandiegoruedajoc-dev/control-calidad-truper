@@ -590,23 +590,51 @@ with tab_entrega_turno:
     df_instrumentos = pd.DataFrame({
         "Inspector": ["Inspector 1", "Inspector 2", "Inspector 3"],
         "Área Asignada": ["CPVC / Carretes / Estante", "PPR / Rafia", "PVC / Canaleta / Trenzado"],
-        "Vernier": ["IP-ACP17-068", "IP-ACP17-062", "IP-ACP17-001"],
-        "Garganta": ["IP-ACP7E-051", "IP-ACP17-016", "IP-ACP17-050"],
+        "Calibrador Vernier": ["IP-ACP17-068", "IP-ACP17-062", "IP-ACP17-001"],
+        "Calibrador garganta": ["IP-ACP7E-051", "IP-ACP17-016", "IP-ACP17-050"],
         "Flexómetro": ["IP-ACP17-063", "IP-ACP17-066", "IP-ACP17-004"],
     })
     st.dataframe(df_instrumentos, use_container_width=True, hide_index=True)
 
-    estado_instrumentos = st.radio(
-        "Estado general de los instrumentos",
-        ["Calibrador Vernier", "Calibrador garganta", "Flexómetro", "Gauge (Cuando aplique)"],
-        index=None, key="et_instrumentos"
-    )
-    if not estado_instrumentos:
-        errores.append("6. Instrumentos de medición")
+    st.markdown("**Estado general de los instrumentos por Inspector \\***")
+    
+    inspectores_data = {}
+    inspectores_nombres = ["Inspector 1", "Inspector 2", "Inspector 3"]
+    
+    for insp in inspectores_nombres:
+        st.markdown(f"**{insp}**")
+        estado_insp = st.radio(
+            f"Estado para {insp}",
+            ["OK", "NOK", "Otras"],
+            horizontal=True, index=None, key=f"et_estado_{insp}"
+        )
+        
+        obs_insp = ""
+        archivo_insp = None
+        
+        if estado_insp in ["NOK", "Otras"]:
+            obs_insp = st.text_input(f"Observaciones / Detalle para {insp}", key=f"et_obs_{insp}")
+            archivo_insp = st.file_uploader(
+                f"Cargar archivo / foto de evidencia para {insp}",
+                type=["png", "jpg", "jpeg", "pdf"],
+                key=f"et_arch_{insp}"
+            )
+            if archivo_insp:
+                st.success(f"✔ Archivo cargado: {archivo_insp.name}")
+        
+        if not estado_insp:
+            errores.append(f"6. Instrumentos de medición ({insp})")
+            
+        inspectores_data[insp] = {
+            "estado": estado_insp,
+            "observaciones": obs_insp,
+            "archivo": archivo_insp
+        }
+        st.markdown("---")
 
     st.divider()
 
-    # ── 7. CARGA DE ARCHIVO DE INSTRUMENTOS ──────────────────
+    # ── 7. CARGA DE ARCHIVO DE INSTRUMENTOS (SEMANAL 2T) ───────
     st.markdown("**7. Cargar archivo con etiquetas visibles y en buen estado de los instrumentos de medición** *(Semanal, APLICA SOLO 2T)*")
     archivo_instrumentos = st.file_uploader(
         "Subir archivo de instrumentos",
@@ -683,7 +711,7 @@ with tab_entrega_turno:
     if st.button("🚀 Enviar Cuestionario de Turno", type="primary", use_container_width=True):
         if errores:
             st.error("⚠️ Faltan los siguientes campos obligatorios por responder:")
-            for err in errores:
+            for err in set(errores):
                 st.markdown(f"- ❌ {err}")
         else:
             datos_cuestionario = {
@@ -695,7 +723,9 @@ with tab_entrega_turno:
                 "area": area,
                 "condicionados": condicionados,
                 "desviaciones": desviaciones,
-                "instrumentos": estado_instrumentos,
+                "instrumentos_inspector_1": f"{inspectores_data['Inspector 1']['estado']} - {inspectores_data['Inspector 1']['observaciones']}",
+                "instrumentos_inspector_2": f"{inspectores_data['Inspector 2']['estado']} - {inspectores_data['Inspector 2']['observaciones']}",
+                "instrumentos_inspector_3": f"{inspectores_data['Inspector 3']['estado']} - {inspectores_data['Inspector 3']['observaciones']}",
                 "masters": masters if masters != "Otras" else f"Otras: {masters_obs}",
                 "tarimas": tarimas,
                 "observaciones": observaciones
