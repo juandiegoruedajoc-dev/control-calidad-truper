@@ -63,7 +63,7 @@ def enviar_fotos_entrega(datos):
 # El webhook (Apps Script "Rafia base de datos") registra la medición en la hoja
 # "Rafia" de la base de datos app calidad, sin tocar la hoja de tubos (Hoja 1).
 # Pega aquí la URL de la aplicación web del script cuando esté creado.
-RAFIA_WEBHOOK_URL = "TU_URL_DEL_SCRIPT_DE_RAFIA"
+RAFIA_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycby4cUXL0QbfR7OBeDJRkK5mrtd05gvX_gFELRMADU7gVs1vtcSV8RgfikzuYJaqQgdx/exec"
 
 def enviar_rafia(datos):
     try:
