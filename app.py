@@ -511,7 +511,6 @@ with tab_rafia:
 
     trazabilidad_rafia = st.selectbox("📌 Seleccione Trazabilidad:", list(ESPEC_RAFIA.keys()), key="trazabilidad_rafia")
     espec = ESPEC_RAFIA[trazabilidad_rafia]
-    st.info(f"**{trazabilidad_rafia}** — Códigos: {espec['codigos']} ({espec['claves']})  |  Calibre: **{espec['gm_min']:.2f} – {espec['gm_max']:.2f} g/m**  |  Denier: **{espec['den_min']:,} – {espec['den_max']:,} g/9000 m**")
 
     col_raf_in, col_space = st.columns([1, 1])
     with col_raf_in:
