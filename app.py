@@ -59,6 +59,20 @@ def foto_a_base64(archivo):
             return None
         return {"nombre": nombre, "tipo": "image/jpeg", "datos": base64.b64encode(datos).decode("utf-8")}
 
+def fotos_de(archivos, punto):
+    """Convierte uno o varios archivos subidos a la lista de fotos de un punto."""
+    if not archivos:
+        return []
+    if not isinstance(archivos, list):
+        archivos = [archivos]
+    out = []
+    for a in archivos:
+        f = foto_a_base64(a)
+        if f:
+            f["punto"] = punto
+            out.append(f)
+    return out
+
 def enviar_fotos_entrega(datos):
     try:
         if FOTOS_WEBHOOK_URL and FOTOS_WEBHOOK_URL != "TU_URL_DEL_SCRIPT_DE_FOTOS":
@@ -743,12 +757,13 @@ with tab_entrega_turno:
         if estado_insp in ["NOK", "Otras"]:
             obs_insp = st.text_input(f"Observaciones / Detalle para {inspector_entrega}", key=f"et_obs_{inspector_entrega}")
             archivo_insp = st.file_uploader(
-                f"Cargar archivo / foto de evidencia para {inspector_entrega}",
+                f"Cargar archivo / foto de evidencia para {inspector_entrega} (puedes elegir varias a la vez)",
                 type=["png", "jpg", "jpeg", "pdf", "heic", "heif"],
+                accept_multiple_files=True,
                 key=f"et_arch_{inspector_entrega}"
             )
             if archivo_insp:
-                st.success(f"✔ Archivo cargado: {archivo_insp.name}")
+                st.success(f"✔ Archivos cargados: {', '.join(a.name for a in archivo_insp)}")
 
         if not estado_insp:
             errores.append(f"6. Instrumentos de medición ({inspector_entrega})")
@@ -772,12 +787,13 @@ with tab_entrega_turno:
     # ── 7. CARGA DE ARCHIVO DE INSTRUMENTOS (SEMANAL 2T) ───────
     st.markdown("**7. Cargar archivo con etiquetas visibles y en buen estado de los instrumentos de medición** *(Semanal, APLICA SOLO 2T)*")
     archivo_instrumentos = st.file_uploader(
-        "Subir archivo de instrumentos",
+        "Subir archivo de instrumentos (puedes elegir varias fotos a la vez)",
         type=["png", "jpg", "jpeg", "pdf", "heic", "heif"],
+        accept_multiple_files=True,
         key="et_arch_inst"
     )
     if archivo_instrumentos:
-        st.success(f"✔ Archivo cargado: {archivo_instrumentos.name}")
+        st.success(f"✔ Archivos cargados: {', '.join(a.name for a in archivo_instrumentos)}")
 
     st.divider()
 
@@ -807,12 +823,13 @@ with tab_entrega_turno:
     # ── 10. SEGUIMIENTO 5'S ───────────────────────────────────
     st.markdown("**10. Seguimiento 5's (Cargar archivo del área libre de muestras y/o scrap) \\*** *(Diario)*")
     archivo_5s = st.file_uploader(
-        "Subir archivo 5's",
+        "Subir archivo 5's (puedes elegir varias fotos a la vez)",
         type=["png", "jpg", "jpeg", "pdf", "heic", "heif"],
+        accept_multiple_files=True,
         key="et_arch_5s"
     )
     if archivo_5s:
-        st.success(f"✔ Archivo cargado: {archivo_5s.name}")
+        st.success(f"✔ Archivos cargados: {', '.join(a.name for a in archivo_5s)}")
 
     st.divider()
 
@@ -825,12 +842,13 @@ with tab_entrega_turno:
     st.dataframe(df_cuarentena, use_container_width=True, hide_index=True)
 
     archivo_cuarentena = st.file_uploader(
-        "Subir archivo cuarentena",
+        "Subir archivo cuarentena (puedes elegir varias fotos a la vez)",
         type=["png", "jpg", "jpeg", "pdf", "heic", "heif"],
+        accept_multiple_files=True,
         key="et_arch_cuarentena"
     )
     if archivo_cuarentena:
-        st.success(f"✔ Archivo cargado: {archivo_cuarentena.name}")
+        st.success(f"✔ Archivos cargados: {', '.join(a.name for a in archivo_cuarentena)}")
 
     st.divider()
 
@@ -868,22 +886,10 @@ with tab_entrega_turno:
             threading.Thread(target=enviar_app_google_sheets, args=(datos_cuestionario,)).start()
             fotos = []
             archivo_insp_entrega = inspectores_data.get(inspector_entrega, {}).get("archivo") if inspector_entrega else None
-            f = foto_a_base64(archivo_insp_entrega)
-            if f:
-                f["punto"] = "6. Instrumentos " + str(inspector_entrega)
-                fotos.append(f)
-            f = foto_a_base64(archivo_instrumentos)
-            if f:
-                f["punto"] = "7. Archivo de instrumentos"
-                fotos.append(f)
-            f = foto_a_base64(archivo_5s)
-            if f:
-                f["punto"] = "10. Seguimiento 5's"
-                fotos.append(f)
-            f = foto_a_base64(archivo_cuarentena)
-            if f:
-                f["punto"] = "11. Área de cuarentena"
-                fotos.append(f)
+            fotos += fotos_de(archivo_insp_entrega, "6. Instrumentos " + str(inspector_entrega))
+            fotos += fotos_de(archivo_instrumentos, "7. Archivo de instrumentos")
+            fotos += fotos_de(archivo_5s, "10. Seguimiento 5's")
+            fotos += fotos_de(archivo_cuarentena, "11. Área de cuarentena")
             if fotos:
                 datos_fotos = dict(datos_cuestionario)
                 datos_fotos["inspector_entrega"] = inspector_entrega
