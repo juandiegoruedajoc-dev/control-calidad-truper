@@ -31,7 +31,7 @@ def enviar_app_google_sheets(datos):
 FOTOS_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbz7Y0-vqtQzHoEtdI1DPFx53JbYr5I6BSHHK9WfewbVl9YOONTDcicbFdQHCFQ1ExS-Sw/exec"
 
 def foto_a_base64(archivo):
-    """Comprime una foto a 1024 px JPEG calidad 70 y la devuelve en base64. Un PDF se envía tal cual."""
+    """Comprime una foto a 1024 px JPEG calidad 70 y la devuelve en base64. Un PDF se envía tal cual. HEIC/HEIF se convierte a JPEG (requiere pillow-heif)."""
     if archivo is None:
         return None
     try:
@@ -44,12 +44,19 @@ def foto_a_base64(archivo):
     try:
         import io
         from PIL import Image
+        try:
+            from pillow_heif import register_heif_opener
+            register_heif_opener()
+        except Exception:
+            pass
         img = Image.open(io.BytesIO(datos)).convert("RGB")
         img.thumbnail((1024, 1024), Image.LANCZOS)
         buf = io.BytesIO()
         img.save(buf, "JPEG", quality=70, optimize=True)
         return {"nombre": nombre.rsplit(".", 1)[0] + ".jpg", "tipo": "image/jpeg", "datos": base64.b64encode(buf.getvalue()).decode("utf-8")}
     except Exception:
+        if nombre.lower().endswith((".heic", ".heif")):
+            return None
         return {"nombre": nombre, "tipo": "image/jpeg", "datos": base64.b64encode(datos).decode("utf-8")}
 
 def enviar_fotos_entrega(datos):
@@ -737,7 +744,7 @@ with tab_entrega_turno:
             obs_insp = st.text_input(f"Observaciones / Detalle para {inspector_entrega}", key=f"et_obs_{inspector_entrega}")
             archivo_insp = st.file_uploader(
                 f"Cargar archivo / foto de evidencia para {inspector_entrega}",
-                type=["png", "jpg", "jpeg", "pdf"],
+                type=["png", "jpg", "jpeg", "pdf", "heic", "heif"],
                 key=f"et_arch_{inspector_entrega}"
             )
             if archivo_insp:
@@ -766,7 +773,7 @@ with tab_entrega_turno:
     st.markdown("**7. Cargar archivo con etiquetas visibles y en buen estado de los instrumentos de medición** *(Semanal, APLICA SOLO 2T)*")
     archivo_instrumentos = st.file_uploader(
         "Subir archivo de instrumentos",
-        type=["png", "jpg", "jpeg", "pdf"],
+        type=["png", "jpg", "jpeg", "pdf", "heic", "heif"],
         key="et_arch_inst"
     )
     if archivo_instrumentos:
@@ -801,7 +808,7 @@ with tab_entrega_turno:
     st.markdown("**10. Seguimiento 5's (Cargar archivo del área libre de muestras y/o scrap) \\*** *(Diario)*")
     archivo_5s = st.file_uploader(
         "Subir archivo 5's",
-        type=["png", "jpg", "jpeg", "pdf"],
+        type=["png", "jpg", "jpeg", "pdf", "heic", "heif"],
         key="et_arch_5s"
     )
     if archivo_5s:
@@ -819,7 +826,7 @@ with tab_entrega_turno:
 
     archivo_cuarentena = st.file_uploader(
         "Subir archivo cuarentena",
-        type=["png", "jpg", "jpeg", "pdf"],
+        type=["png", "jpg", "jpeg", "pdf", "heic", "heif"],
         key="et_arch_cuarentena"
     )
     if archivo_cuarentena:
