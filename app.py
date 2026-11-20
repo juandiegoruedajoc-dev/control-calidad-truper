@@ -22,6 +22,13 @@ except Exception:
     PRUEBAS_MENSUALES = []
     generar_pdf_prueba = None
 
+# --- Soporte HEIC/HEIF: registrar el opener una sola vez al arrancar ---
+try:
+    from pillow_heif import register_heif_opener as _register_heif_opener
+    _register_heif_opener()
+except Exception:
+    pass
+
 # --- Configuración Base de Datos Invisible ---
 WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbzKz2I-_NrWneexvxl6D78NELPu0An1YpDXsYgwsRf28L1LgLoycRFe8vB0d2RY6bTrug/exec"
 
@@ -57,13 +64,25 @@ def foto_a_base64(archivo):
             register_heif_opener()
         except Exception:
             pass
-        img = Image.open(io.BytesIO(datos)).convert("RGB")
+        img = Image.open(io.BytesIO(datos))
+        try:
+            # Decodifica a baja resolución (fotos de celular muy grandes)
+            img.draft("RGB", (1024, 1024))
+        except Exception:
+            pass
+        img = img.convert("RGB")
         img.thumbnail((1024, 1024), Image.LANCZOS)
         buf = io.BytesIO()
         img.save(buf, "JPEG", quality=70, optimize=True)
         return {"nombre": nombre.rsplit(".", 1)[0] + ".jpg", "tipo": "image/jpeg", "datos": base64.b64encode(buf.getvalue()).decode("utf-8")}
     except Exception:
         if nombre.lower().endswith((".heic", ".heif")):
+            return None
+        # Solo devolver los bytes crudos si de verdad son una imagen legible;
+        # si no, reportar fallo (None) para que la interfaz avise al usuario.
+        try:
+            Image.open(io.BytesIO(datos)).verify()
+        except Exception:
             return None
         return {"nombre": nombre, "tipo": "image/jpeg", "datos": base64.b64encode(datos).decode("utf-8")}
 
@@ -1002,7 +1021,7 @@ with tab_pruebas:
         st.markdown("**Evidencia de evaluación** *(fotos de la prueba; puedes elegir varias a la vez)*")
         pm_fotos = st.file_uploader(
             "Subir fotos de evidencia",
-            type=["png", "jpg", "jpeg", "heic", "heif"],
+            type=["png", "jpg", "jpeg", "heic", "heif", "webp"],
             accept_multiple_files=True,
             key="pm_fotos",
         )
@@ -1013,10 +1032,20 @@ with tab_pruebas:
         if st.button("📄 Generar PDF del formato", type="primary", use_container_width=True, key="pm_generar"):
             try:
                 fotos_bytes = []
-                for arch in (pm_fotos or []):
-                    conv = foto_a_base64(arch)
-                    if conv and conv.get("tipo") == "image/jpeg":
-                        fotos_bytes.append(base64.b64decode(conv["datos"]))
+                fotos_fallidas = []
+                with st.spinner("Procesando fotos y generando el PDF..."):
+                    for arch in (pm_fotos or []):
+                        conv = foto_a_base64(arch)
+                        if conv and conv.get("tipo") == "image/jpeg":
+                            fotos_bytes.append(base64.b64decode(conv["datos"]))
+                        else:
+                            fotos_fallidas.append(getattr(arch, "name", "foto sin nombre"))
+                if fotos_fallidas:
+                    st.warning(
+                        "⚠️ No se pudieron cargar estas fotos (formato no compatible): "
+                        + ", ".join(fotos_fallidas)
+                        + ". Intenta con fotos JPG o PNG."
+                    )
                 datos_pdf = {
                     "fecha": pm_fecha.strftime("%d/%m/%Y"),
                     "responsable": pm_responsable,

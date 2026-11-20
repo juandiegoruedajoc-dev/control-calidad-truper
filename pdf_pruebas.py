@@ -208,7 +208,12 @@ def _fotos_a_imagenes(fotos_bytes, ancho_max, alto_max=100, alto_min=55, gap=8):
     pil_imgs = []
     for datos in fotos_bytes or []:
         try:
-            pil_imgs.append(Image.open(io.BytesIO(datos)).convert("RGB"))
+            im = Image.open(io.BytesIO(datos))
+            try:
+                im.draft("RGB", (1024, 1024))
+            except Exception:
+                pass
+            pil_imgs.append(im.convert("RGB"))
         except Exception:
             continue
     if not pil_imgs:
