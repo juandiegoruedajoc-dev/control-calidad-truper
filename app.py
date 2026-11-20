@@ -945,18 +945,18 @@ with tab_pruebas:
         st.markdown("**Datos de la prueba** *(se llenan solos al elegir el código)*")
         col_a, col_b = st.columns(2)
         with col_a:
-            st.text_input("Código", value=prueba_sel["codigo"], disabled=True, key="pm_codigo")
-            st.text_input("Clave", value=prueba_sel["clave"], disabled=True, key="pm_clave")
-            st.text_input("Prueba", value=prueba_sel["prueba"], disabled=True, key="pm_prueba_txt")
+            st.markdown(f"**Código:** {prueba_sel['codigo']}")
+            st.markdown(f"**Clave:** {prueba_sel['clave']}")
+            st.markdown(f"**Prueba:** {prueba_sel['prueba']}")
         with col_b:
-            st.text_input("Planta", value=prueba_sel["planta"], disabled=True, key="pm_planta")
-            st.text_input("Cantidad de muestras", value=prueba_sel["muestras"], disabled=True, key="pm_cantidad")
+            st.markdown(f"**Planta:** {prueba_sel['planta']}")
+            st.markdown(f"**Cantidad de muestras:** {prueba_sel['muestras']}")
             pm_periodicidad = st.selectbox(
                 "Periodicidad de la prueba", ["Mensual", "Semanal", "Quincenal"], index=0, key="pm_periodicidad"
             )
 
-        st.text_input("Característica", value=prueba_sel["caracteristica"], disabled=True, key="pm_caracteristica")
-        st.text_area("Especificación", value=prueba_sel["especificacion"], disabled=True, height=90, key="pm_especificacion")
+        st.markdown(f"**Característica:** {prueba_sel['caracteristica']}")
+        st.markdown(f"**Especificación:** {prueba_sel['especificacion']}")
 
         st.divider()
         st.markdown("**Tu evaluación** *(solo tu nombre, los resultados y las fotos)*")
