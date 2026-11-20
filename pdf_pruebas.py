@@ -118,10 +118,12 @@ F_NORMAL = "DejaVu" if _F.get("DejaVu") else ("Liberation" if _F.get("Liberation
 F_BOLD = "DejaVu-Bold" if _F.get("DejaVu-Bold") else ("Liberation-Bold" if _F.get("Liberation-Bold") else "Helvetica-Bold")
 F_OBLIQUE = "DejaVu-Oblique" if _F.get("DejaVu-Oblique") else ("Liberation-Italic" if _F.get("Liberation-Italic") else "Helvetica-Oblique")
 
-# Firmas según inspector (elaboró = inspector; aprueban jefe y gerente)
+# Firmas (elaboró = inspector; aprueban jefe y gerente).
+# Juan (2026-11-20): solo José Antonio Hernández (jefe) y Raúl Valdez (gerente)
+# para todos los inspectores; ya no se usan Hilario Martínez ni Luz Iliana.
 FIRMAS = {
-    "lizeth": ("Ing. Hilario Martínez Correa", "Ing. Luz Iliana Garcia Medina"),
-    "dilan": ("Ing. Hilario Martínez Correa", "Ing. Luz Iliana Garcia Medina"),
+    "lizeth": ("Ing. Jose Antonio Hernandez del Valle", "Ing. Raúl Valdez Escamilla"),
+    "dilan": ("Ing. Jose Antonio Hernandez del Valle", "Ing. Raúl Valdez Escamilla"),
     "juan": ("Ing. Jose Antonio Hernandez del Valle", "Ing. Raúl Valdez Escamilla"),
     "jose_israel": ("Ing. Jose Antonio Hernandez del Valle", "Ing. Raúl Valdez Escamilla"),
     "daniel": ("Ing. Jose Antonio Hernandez del Valle", "Ing. Raúl Valdez Escamilla"),
