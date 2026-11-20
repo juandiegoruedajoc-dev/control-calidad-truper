@@ -134,6 +134,7 @@ FIRMAS = {
     "jorge_henkel": ("Ing. Jose Antonio Hernandez del Valle", "Ing. Raúl Valdez Escamilla"),
     "genaro_vega": ("Ing. Jose Antonio Hernandez del Valle", "Ing. Raúl Valdez Escamilla"),
     "juan": ("Ing. Jose Antonio Hernandez del Valle", "Ing. Raúl Valdez Escamilla"),
+    "emir_navarro": ("Ing. Jose Antonio Hernandez del Valle", "Ing. Raúl Valdez Escamilla"),
 }
 
 

@@ -928,6 +928,7 @@ with tab_pruebas:
             ("Ing. Jorge Luis Henkel", "jorge_henkel"),
             ("Ing. Genaro Vega", "genaro_vega"),
             ("Ing. Juan Diego Hernández", "juan"),
+            ("Ing. Emir Alexis Navarro Castillo", "emir_navarro"),
         ]
 
         def _etiqueta_prueba(p):
