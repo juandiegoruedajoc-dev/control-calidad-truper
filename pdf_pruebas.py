@@ -121,13 +121,19 @@ F_OBLIQUE = "DejaVu-Oblique" if _F.get("DejaVu-Oblique") else ("Liberation-Itali
 # Firmas (elaboró = inspector; aprueban jefe y gerente).
 # Juan (2026-11-20): solo José Antonio Hernández (jefe) y Raúl Valdez (gerente)
 # para todos los inspectores; ya no se usan Hilario Martínez ni Luz Iliana.
+# Claves = inspectores actuales (lista enviada por Juan el 2026-11-20).
 FIRMAS = {
-    "lizeth": ("Ing. Jose Antonio Hernandez del Valle", "Ing. Raúl Valdez Escamilla"),
-    "dilan": ("Ing. Jose Antonio Hernandez del Valle", "Ing. Raúl Valdez Escamilla"),
+    "luis_trujillo": ("Ing. Jose Antonio Hernandez del Valle", "Ing. Raúl Valdez Escamilla"),
+    "aaron_limon": ("Ing. Jose Antonio Hernandez del Valle", "Ing. Raúl Valdez Escamilla"),
+    "alan_meyai": ("Ing. Jose Antonio Hernandez del Valle", "Ing. Raúl Valdez Escamilla"),
+    "lizbeth_garcia": ("Ing. Jose Antonio Hernandez del Valle", "Ing. Raúl Valdez Escamilla"),
+    "paola_luna": ("Ing. Jose Antonio Hernandez del Valle", "Ing. Raúl Valdez Escamilla"),
+    "jesus_martinez": ("Ing. Jose Antonio Hernandez del Valle", "Ing. Raúl Valdez Escamilla"),
+    "miguel_rodriguez": ("Ing. Jose Antonio Hernandez del Valle", "Ing. Raúl Valdez Escamilla"),
+    "yesenia_hernandez": ("Ing. Jose Antonio Hernandez del Valle", "Ing. Raúl Valdez Escamilla"),
+    "jorge_henkel": ("Ing. Jose Antonio Hernandez del Valle", "Ing. Raúl Valdez Escamilla"),
+    "genaro_vega": ("Ing. Jose Antonio Hernandez del Valle", "Ing. Raúl Valdez Escamilla"),
     "juan": ("Ing. Jose Antonio Hernandez del Valle", "Ing. Raúl Valdez Escamilla"),
-    "jose_israel": ("Ing. Jose Antonio Hernandez del Valle", "Ing. Raúl Valdez Escamilla"),
-    "daniel": ("Ing. Jose Antonio Hernandez del Valle", "Ing. Raúl Valdez Escamilla"),
-    "judith": ("Ing. Jose Antonio Hernandez del Valle", "Ing. Raúl Valdez Escamilla"),
 }
 
 

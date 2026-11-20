@@ -915,13 +915,19 @@ with tab_pruebas:
     if not PRUEBAS_MENSUALES or generar_pdf_prueba is None:
         st.error("⚠️ No se pudo cargar el catálogo de pruebas o el generador PDF. Revisa que los archivos catalogo_pruebas.py y pdf_pruebas.py estén en el repositorio.")
     else:
+        # Inspectores actuales (lista enviada por Juan el 2026-11-20)
         INSPECTORES_PM = [
-            ("Ing. Lizeth Zagal Benitez", "lizeth"),
-            ("Ing. Dilan Isaias Meza Rojano", "dilan"),
-            ("Ing. Juan Diego Hernandez Rueda", "juan"),
-            ("Ing. José Israel Álvarez Juárez", "jose_israel"),
-            ("Ing. Daniel Rodriguez Sandoval", "daniel"),
-            ("Ing. Judith Rangel Calva", "judith"),
+            ("Ing. Luis Trujillo", "luis_trujillo"),
+            ("Ing. Aaron E. Limon López", "aaron_limon"),
+            ("Ing. Alan Uriel Meyai Vite", "alan_meyai"),
+            ("Ing. Lizbeth García Ramirez", "lizbeth_garcia"),
+            ("Ing. Paola Citlalli Luna Arteaga", "paola_luna"),
+            ("Ing. Jesus Martinez Sanchez", "jesus_martinez"),
+            ("Ing. Miguel Norberto Rodriguez Martinez", "miguel_rodriguez"),
+            ("Ing. Yesenia Hernandez De Jesus", "yesenia_hernandez"),
+            ("Ing. Jorge Luis Henkel", "jorge_henkel"),
+            ("Ing. Genaro Vega", "genaro_vega"),
+            ("Ing. Juan Diego Hernández", "juan"),
         ]
 
         def _etiqueta_prueba(p):
