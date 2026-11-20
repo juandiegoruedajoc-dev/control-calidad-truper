@@ -145,6 +145,7 @@ def _estilos():
         "etiqueta": ParagraphStyle("etiqueta", fontName=F_NORMAL, fontSize=10, leading=13, alignment=TA_LEFT),
         "valor": ParagraphStyle("valor", fontName=F_NORMAL, fontSize=10, leading=13, alignment=TA_CENTER),
         "celda": ParagraphStyle("celda", fontName=F_NORMAL, fontSize=10, leading=13, alignment=TA_CENTER),
+        "celda_left": ParagraphStyle("celda_left", fontName=F_NORMAL, fontSize=10, leading=13, alignment=TA_LEFT),
         "celda_b": ParagraphStyle("celda_b", fontName=F_BOLD, fontSize=10, leading=13, alignment=TA_CENTER),
         "ok": ParagraphStyle("ok", fontName=F_BOLD, fontSize=11, leading=14, alignment=TA_CENTER, textColor=VERDE),
         "no_ok": ParagraphStyle("no_ok", fontName=F_BOLD, fontSize=11, leading=14, alignment=TA_CENTER, textColor=ROJO),
@@ -178,7 +179,8 @@ def _campo(etiqueta, valor, estilo_valor, ancho_total, ancho_etiqueta, estilos):
 
 
 def _casilla(marcada):
-    """Casilla de verificación dibujada (cuadrado con X si está marcada).
+    """Casilla de verificación dibujada: cuadrada, rellena de negro si está
+    marcada y solo con borde si no (como en el formato Excel).
 
     Se dibuja como imagen porque las fuentes base (Helvetica) no traen los
     glifos ☑/☐ y los renderizan como cuadros negros.
@@ -186,10 +188,10 @@ def _casilla(marcada):
     size = 72
     im = Image.new("RGB", (size, size), "white")
     d = ImageDraw.Draw(im)
-    d.rectangle([3, 3, size - 4, size - 4], outline="black", width=5)
     if marcada:
-        d.line([16, 16, size - 16, size - 16], fill="black", width=6)
-        d.line([size - 16, 16, 16, size - 16], fill="black", width=6)
+        d.rectangle([3, 3, size - 4, size - 4], fill="black")
+    else:
+        d.rectangle([3, 3, size - 4, size - 4], outline="black", width=5)
     buf = io.BytesIO()
     im.save(buf, "PNG")
     buf.seek(0)
@@ -301,7 +303,7 @@ def generar_pdf(datos, logo_path=None):
         ]))
         return t
 
-    # ── Encabezado: logo + título ──────────────────────────────
+    # ── Encabezado: logo + título (título en un solo renglón) ──
     if logo_path is None:
         try:
             logo_path = io.BytesIO(base64.b64decode(LOGO_B64))
@@ -309,16 +311,25 @@ def generar_pdf(datos, logo_path=None):
             logo_path = None
     if logo_path:
         try:
-            logo = RLImage(logo_path, width=110, height=110 * 190 / 433)
+            logo = RLImage(logo_path, width=95, height=95 * 190 / 433)
             celda_logo = logo
         except Exception:
             celda_logo = Paragraph("", est["etiqueta"])
     else:
         celda_logo = Paragraph("", est["etiqueta"])
+    ancho_titulo = ancho_util - 105
+    texto_titulo = "REGISTRO DE EVALUACIÓN PARA PRUEBAS PERIÓDICAS REALIZADAS EN PLANTA"
+    # Elige el tamaño de letra más grande que quepa en un solo renglón
+    tam_titulo = 13.0
+    while tam_titulo > 8.5 and pdfmetrics.stringWidth(texto_titulo, F_BOLD, tam_titulo) > ancho_titulo - 16:
+        tam_titulo -= 0.25
+    est_titulo = ParagraphStyle(
+        "titulo_ajustado", fontName=F_BOLD, fontSize=tam_titulo,
+        leading=tam_titulo + 3, alignment=TA_CENTER,
+    )
     enc = Table([
-        [celda_logo,
-         Paragraph("REGISTRO DE EVALUACIÓN PARA PRUEBAS PERIÓDICAS REALIZADAS EN PLANTA", est["titulo"])]
-    ], colWidths=[120, ancho_util - 120])
+        [celda_logo, Paragraph(texto_titulo, est_titulo)]
+    ], colWidths=[105, ancho_titulo])
     enc.setStyle(TableStyle([
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
         ("LEFTPADDING", (0, 0), (-1, -1), 4),
@@ -326,7 +337,7 @@ def generar_pdf(datos, logo_path=None):
         ("TOPPADDING", (0, 0), (-1, -1), 4),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
         ("BOX", (1, 0), (1, 0), 1.2, NEGRO),
-        ("ROUNDEDCORNERS", [6, 6, 6, 6]),
+        ("ROUNDEDCORNERS", [12, 12, 12, 12]),
     ]))
     historia.append(enc)
     historia.append(Spacer(1, 2))
@@ -386,16 +397,14 @@ def generar_pdf(datos, logo_path=None):
 
     # ── RESULTADOS ─────────────────────────────────────────────
     titulo_res = Table([
-        [Paragraph("RESULTADOS DE LAS CARACTERISTICAS EVALUDAS", est["seccion"])],
-        [Paragraph("(Indicar cada una de las caracteristicas evaluadas)", est["subtitulo"])],
+        [[Paragraph("RESULTADOS DE LAS CARACTERISTICAS EVALUDAS", est["seccion"]),
+          Paragraph("(Indicar cada una de las caracteristicas evaluadas)", est["subtitulo"])]],
     ], colWidths=[ancho_util])
     titulo_res.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), GRIS_TITULO),
+        ("BACKGROUND", (0, 0), (-1, -1), GRIS_TITULO),
         ("BOX", (0, 0), (-1, -1), 1, NEGRO),
-        ("TOPPADDING", (0, 0), (-1, 0), 4),
-        ("BOTTOMPADDING", (0, 0), (-1, 0), 2),
-        ("TOPPADDING", (0, 1), (-1, 1), 1),
-        ("BOTTOMPADDING", (0, 1), (-1, 1), 4),
+        ("TOPPADDING", (0, 0), (-1, -1), 4),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
         ("LEFTPADDING", (0, 0), (-1, -1), 4),
         ("RIGHTPADDING", (0, 0), (-1, -1), 4),
     ]))
@@ -477,12 +486,27 @@ def generar_pdf(datos, logo_path=None):
     # ── CONCLUSIÓN ─────────────────────────────────────────────
     historia.append(seccion("CONCLUSIÓN"))
     conforme = bool(datos.get("conforme", True))
+
+    def _opcion(marcada, texto):
+        """Casilla pegada a su etiqueta (sin espacio entre ambas)."""
+        t = Table(
+            [[_casilla(marcada), Paragraph(texto, est["celda_left"])]],
+            colWidths=[16, 110],
+        )
+        t.setStyle(TableStyle([
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 0),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+            ("TOPPADDING", (0, 0), (-1, -1), 0),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+        ]))
+        return t
+
     concl = Table([
-        [_casilla(conforme), Paragraph("Conforme", est["celda"]),
-         _casilla(not conforme), Paragraph("No Conforme", est["celda"])],
+        [_opcion(conforme, "Conforme"), _opcion(not conforme, "No Conforme")],
         [Paragraph("En caso de obtener una evaluación con no cumplimiento aplicar plan de reacción declarado en PR-ACP-002", est["nota"]),
-         Paragraph("", est["nota"]), Paragraph("", est["nota"]), Paragraph("", est["nota"])],
-    ], colWidths=[26, ancho_util * 0.5 - 26, 26, ancho_util * 0.5 - 26])
+         Paragraph("", est["nota"])],
+    ], colWidths=[ancho_util * 0.5, ancho_util * 0.5])
     concl.setStyle(TableStyle([
         ("BOX", (0, 0), (-1, -1), 1, NEGRO),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
@@ -490,7 +514,7 @@ def generar_pdf(datos, logo_path=None):
         ("RIGHTPADDING", (0, 0), (-1, -1), 4),
         ("TOPPADDING", (0, 0), (-1, -1), 4),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-        ("SPAN", (0, 1), (3, 1)),
+        ("SPAN", (0, 1), (1, 1)),
     ]))
     historia.append(concl)
 
