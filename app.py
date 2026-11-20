@@ -14,6 +14,14 @@ import json
 import base64
 import urllib.parse
 
+# --- Pruebas mensuales: catálogo precargado y generador PDF FO-ACP-090 Rev. 1 ---
+try:
+    from catalogo_pruebas import PRUEBAS_MENSUALES
+    from pdf_pruebas import generar_pdf as generar_pdf_prueba
+except Exception:
+    PRUEBAS_MENSUALES = []
+    generar_pdf_prueba = None
+
 # --- Configuración Base de Datos Invisible ---
 WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbzKz2I-_NrWneexvxl6D78NELPu0An1YpDXsYgwsRf28L1LgLoycRFe8vB0d2RY6bTrug/exec"
 
@@ -492,8 +500,8 @@ def render_tab(reglas, tab_key, validar_espesor_individual=True, min_aplastamien
             threading.Thread(target=enviar_app_google_sheets, args=(datos_registro,)).start()
 
 # --- Tab Layout ---
-tab_cpvc, tab_estante, tab_pvc, tab_pvc_rd, tab_ppr, tab_cespol, tab_rafia, tab_equipos, tab_entrega_turno = st.tabs([
-    "CPVC", "Tubo de Estante", "PVC Cédula 40", "PVC RD", "PPR", "Tubo de Céspol", "Rafia", "Equipos de medición", "📝 Entrega de Turno"
+tab_cpvc, tab_estante, tab_pvc, tab_pvc_rd, tab_ppr, tab_cespol, tab_rafia, tab_equipos, tab_entrega_turno, tab_pruebas = st.tabs([
+    "CPVC", "Tubo de Estante", "PVC Cédula 40", "PVC RD", "PPR", "Tubo de Céspol", "Rafia", "Equipos de medición", "📝 Entrega de Turno", "🧪 Pruebas mensuales"
 ])
 
 with tab_cpvc:
@@ -896,3 +904,142 @@ with tab_entrega_turno:
                 datos_fotos["fotos"] = fotos
                 threading.Thread(target=enviar_fotos_entrega, args=(datos_fotos,)).start()
             st.success("✨ ¡Cuestionario de Entrega de Turno enviado correctamente!")
+
+# =============================================================
+# PESTAÑA: PRUEBAS MENSUALES (genera el PDF FO-ACP-090 Rev. 1)
+# =============================================================
+with tab_pruebas:
+    st.header("🧪 Pruebas mensuales — Formato FO-ACP-090 Rev. 1")
+    st.markdown("Selecciona la prueba, sube las fotos de evidencia y descarga el formato ya llenado en PDF.")
+
+    if not PRUEBAS_MENSUALES or generar_pdf_prueba is None:
+        st.error("⚠️ No se pudo cargar el catálogo de pruebas o el generador PDF. Revisa que los archivos catalogo_pruebas.py y pdf_pruebas.py estén en el repositorio.")
+    else:
+        INSPECTORES_PM = [
+            ("Ing. Lizeth Zagal Benitez", "lizeth"),
+            ("Ing. Dilan Isaias Meza Rojano", "dilan"),
+            ("Ing. Juan Diego Hernandez Rueda", "juan"),
+            ("Ing. José Israel Álvarez Juárez", "jose_israel"),
+            ("Ing. Daniel Rodriguez Sandoval", "daniel"),
+            ("Ing. Judith Rangel Calva", "judith"),
+        ]
+
+        def _etiqueta_prueba(p):
+            return f"{p['clave']} — {p['prueba']} (código {p['codigo']})"
+
+        idx_prueba = st.selectbox(
+            "📌 Selecciona la prueba",
+            list(range(len(PRUEBAS_MENSUALES))),
+            format_func=lambda i: _etiqueta_prueba(PRUEBAS_MENSUALES[i]),
+            key="pm_prueba",
+        )
+        prueba_sel = PRUEBAS_MENSUALES[idx_prueba]
+
+        st.divider()
+        st.markdown("**Datos precargados de la prueba** *(puedes corregirlos si hace falta)*")
+        col_a, col_b = st.columns(2)
+        with col_a:
+            pm_codigo = st.text_input("Código", value=prueba_sel["codigo"], key="pm_codigo")
+            pm_clave = st.text_input("Clave", value=prueba_sel["clave"], key="pm_clave")
+            pm_prueba = st.text_input("Prueba", value=prueba_sel["prueba"], key="pm_prueba_txt")
+        with col_b:
+            pm_planta = st.text_input("Planta", value=prueba_sel["planta"], key="pm_planta")
+            pm_cantidad = st.text_input("Cantidad de muestras", value=prueba_sel["muestras"], key="pm_cantidad")
+            pm_periodicidad = st.selectbox(
+                "Periodicidad de la prueba", ["Mensual", "Semanal", "Quincenal"], index=0, key="pm_periodicidad"
+            )
+
+        pm_caracteristica = st.text_input("Característica", value=prueba_sel["caracteristica"], key="pm_caracteristica")
+        pm_especificacion = st.text_area("Especificación", value=prueba_sel["especificacion"], key="pm_especificacion", height=90)
+
+        st.divider()
+        col_f, col_i = st.columns(2)
+        with col_f:
+            pm_fecha = st.date_input("Fecha de evaluación", value=ahora_local().date(), key="pm_fecha")
+        with col_i:
+            pm_inspector_idx = st.selectbox(
+                "Responsable de evaluación",
+                list(range(len(INSPECTORES_PM))),
+                format_func=lambda i: INSPECTORES_PM[i][0],
+                key="pm_inspector",
+            )
+        pm_responsable, pm_inspector_key = INSPECTORES_PM[pm_inspector_idx]
+
+        st.divider()
+        st.markdown("**Resultados de las muestras** *(escribe OK, o NO OK con el tiempo/detalle, p. ej. `NO OK 17:40`)*")
+        col_m1, col_m2, col_m3 = st.columns(3)
+        with col_m1:
+            pm_m1 = st.text_input("M1", value="OK", key="pm_m1")
+        with col_m2:
+            pm_m2 = st.text_input("M2", value="OK", key="pm_m2")
+        with col_m3:
+            pm_m3 = st.text_input("M3", value="OK", key="pm_m3")
+
+        valores_pm = [pm_m1.strip(), pm_m2.strip(), pm_m3.strip()]
+        alguno_no_ok = any("NO" in v.upper() and "OK" in v.upper() for v in valores_pm if v)
+        resultado_sugerido = "NO CUMPLE" if alguno_no_ok else "CUMPLE"
+
+        pm_resultado = st.selectbox(
+            "Resultado", ["CUMPLE", "NO CUMPLE"],
+            index=0 if resultado_sugerido == "CUMPLE" else 1, key="pm_resultado",
+        )
+        conforme_sugerido = pm_resultado == "CUMPLE"
+        pm_conforme = st.radio(
+            "Conclusión", ["Conforme", "No Conforme"],
+            index=0 if conforme_sugerido else 1, horizontal=True, key="pm_conforme",
+        )
+
+        pm_observaciones = st.text_area("Observaciones generales", key="pm_observaciones", height=90)
+
+        st.divider()
+        st.markdown("**Evidencia de evaluación** *(fotos de la prueba; puedes elegir varias a la vez)*")
+        pm_fotos = st.file_uploader(
+            "Subir fotos de evidencia",
+            type=["png", "jpg", "jpeg", "heic", "heif"],
+            accept_multiple_files=True,
+            key="pm_fotos",
+        )
+        if pm_fotos:
+            st.success(f"✔ Fotos cargadas: {len(pm_fotos)}")
+
+        st.divider()
+        if st.button("📄 Generar PDF del formato", type="primary", use_container_width=True, key="pm_generar"):
+            try:
+                fotos_bytes = []
+                for arch in (pm_fotos or []):
+                    conv = foto_a_base64(arch)
+                    if conv and conv.get("tipo") == "image/jpeg":
+                        fotos_bytes.append(base64.b64decode(conv["datos"]))
+                datos_pdf = {
+                    "fecha": pm_fecha.strftime("%d/%m/%Y"),
+                    "responsable": pm_responsable,
+                    "planta": pm_planta.strip(),
+                    "periodicidad": pm_periodicidad,
+                    "prueba": pm_prueba.strip(),
+                    "codigo": pm_codigo.strip(),
+                    "clave": pm_clave.strip(),
+                    "cantidad": pm_cantidad.strip(),
+                    "caracteristica": pm_caracteristica.strip(),
+                    "especificacion": pm_especificacion.strip(),
+                    "valores": valores_pm,
+                    "resultado": pm_resultado,
+                    "conforme": pm_conforme == "Conforme",
+                    "observaciones": pm_observaciones.strip(),
+                    "fotos": fotos_bytes,
+                    "inspector_key": pm_inspector_key,
+                }
+                pdf_bytes = generar_pdf_prueba(datos_pdf)
+                nombre_pdf = "FO-ACP-090_" + "".join(
+                    c if c.isalnum() or c in "-_" else "_" for c in pm_clave.strip()
+                ) + "_" + pm_fecha.strftime("%Y%m%d") + ".pdf"
+                st.success("✅ Formato generado. Descárgalo con el botón:")
+                st.download_button(
+                    "⬇️ Descargar PDF FO-ACP-090 Rev. 1",
+                    data=pdf_bytes,
+                    file_name=nombre_pdf,
+                    mime="application/pdf",
+                    use_container_width=True,
+                    key="pm_descargar",
+                )
+            except Exception as e:
+                st.error(f"⚠️ No se pudo generar el PDF: {e}")
