@@ -910,7 +910,7 @@ with tab_entrega_turno:
 # =============================================================
 with tab_pruebas:
     st.header("🧪 Pruebas mensuales — Formato FO-ACP-090 Rev. 1")
-    st.markdown("Selecciona la prueba, sube las fotos de evidencia y descarga el formato ya llenado en PDF.")
+    st.markdown("Selecciona el código y todo se llena solo. Solo confirma tu nombre, los resultados y sube las fotos de evidencia para descargar el formato en PDF.")
 
     if not PRUEBAS_MENSUALES or generar_pdf_prueba is None:
         st.error("⚠️ No se pudo cargar el catálogo de pruebas o el generador PDF. Revisa que los archivos catalogo_pruebas.py y pdf_pruebas.py estén en el repositorio.")
@@ -935,31 +935,31 @@ with tab_pruebas:
             return f"{p['clave']} — {p['prueba']} (código {p['codigo']})"
 
         idx_prueba = st.selectbox(
-            "📌 Selecciona la prueba",
+            "📌 Selecciona el código de la prueba",
             list(range(len(PRUEBAS_MENSUALES))),
             format_func=lambda i: _etiqueta_prueba(PRUEBAS_MENSUALES[i]),
             key="pm_prueba",
         )
         prueba_sel = PRUEBAS_MENSUALES[idx_prueba]
 
-        st.divider()
-        st.markdown("**Datos precargados de la prueba** *(puedes corregirlos si hace falta)*")
+        st.markdown("**Datos de la prueba** *(se llenan solos al elegir el código)*")
         col_a, col_b = st.columns(2)
         with col_a:
-            pm_codigo = st.text_input("Código", value=prueba_sel["codigo"], key="pm_codigo")
-            pm_clave = st.text_input("Clave", value=prueba_sel["clave"], key="pm_clave")
-            pm_prueba = st.text_input("Prueba", value=prueba_sel["prueba"], key="pm_prueba_txt")
+            st.text_input("Código", value=prueba_sel["codigo"], disabled=True, key="pm_codigo")
+            st.text_input("Clave", value=prueba_sel["clave"], disabled=True, key="pm_clave")
+            st.text_input("Prueba", value=prueba_sel["prueba"], disabled=True, key="pm_prueba_txt")
         with col_b:
-            pm_planta = st.text_input("Planta", value=prueba_sel["planta"], key="pm_planta")
-            pm_cantidad = st.text_input("Cantidad de muestras", value=prueba_sel["muestras"], key="pm_cantidad")
+            st.text_input("Planta", value=prueba_sel["planta"], disabled=True, key="pm_planta")
+            st.text_input("Cantidad de muestras", value=prueba_sel["muestras"], disabled=True, key="pm_cantidad")
             pm_periodicidad = st.selectbox(
                 "Periodicidad de la prueba", ["Mensual", "Semanal", "Quincenal"], index=0, key="pm_periodicidad"
             )
 
-        pm_caracteristica = st.text_input("Característica", value=prueba_sel["caracteristica"], key="pm_caracteristica")
-        pm_especificacion = st.text_area("Especificación", value=prueba_sel["especificacion"], key="pm_especificacion", height=90)
+        st.text_input("Característica", value=prueba_sel["caracteristica"], disabled=True, key="pm_caracteristica")
+        st.text_area("Especificación", value=prueba_sel["especificacion"], disabled=True, height=90, key="pm_especificacion")
 
         st.divider()
+        st.markdown("**Tu evaluación** *(solo tu nombre, los resultados y las fotos)*")
         col_f, col_i = st.columns(2)
         with col_f:
             pm_fecha = st.date_input("Fecha de evaluación", value=ahora_local().date(), key="pm_fecha")
@@ -1020,14 +1020,14 @@ with tab_pruebas:
                 datos_pdf = {
                     "fecha": pm_fecha.strftime("%d/%m/%Y"),
                     "responsable": pm_responsable,
-                    "planta": pm_planta.strip(),
+                    "planta": prueba_sel["planta"],
                     "periodicidad": pm_periodicidad,
-                    "prueba": pm_prueba.strip(),
-                    "codigo": pm_codigo.strip(),
-                    "clave": pm_clave.strip(),
-                    "cantidad": pm_cantidad.strip(),
-                    "caracteristica": pm_caracteristica.strip(),
-                    "especificacion": pm_especificacion.strip(),
+                    "prueba": prueba_sel["prueba"],
+                    "codigo": prueba_sel["codigo"],
+                    "clave": prueba_sel["clave"],
+                    "cantidad": prueba_sel["muestras"],
+                    "caracteristica": prueba_sel["caracteristica"],
+                    "especificacion": prueba_sel["especificacion"],
                     "valores": valores_pm,
                     "resultado": pm_resultado,
                     "conforme": pm_conforme == "Conforme",
@@ -1037,7 +1037,7 @@ with tab_pruebas:
                 }
                 pdf_bytes = generar_pdf_prueba(datos_pdf)
                 nombre_pdf = "FO-ACP-090_" + "".join(
-                    c if c.isalnum() or c in "-_" else "_" for c in pm_clave.strip()
+                    c if c.isalnum() or c in "-_" else "_" for c in prueba_sel["clave"]
                 ) + "_" + pm_fecha.strftime("%Y%m%d") + ".pdf"
                 st.success("✅ Formato generado. Descárgalo con el botón:")
                 st.download_button(
