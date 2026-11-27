@@ -14,10 +14,59 @@ import json
 import base64
 import urllib.parse
 
-# --- Pruebas mensuales: catálogo precargado y generador PDF FO-ACP-090 Rev. 1 ---
+# --- Pruebas mensuales: catálogo precargado y generador por plantilla FO-ACP-090 Rev. 1 ---
 try:
     from catalogo_pruebas import PRUEBAS_MENSUALES
-    from pdf_pruebas import generar_pdf as generar_pdf_prueba
+    from generar_formato import generar_formato as _generar_formato_plantilla
+    import os as _os_pm
+    _PLANTILLA_PM = _os_pm.path.join(_os_pm.path.dirname(_os_pm.path.abspath(__file__)), "plantilla_fo_acp_090.xlsx")
+    def _instalar_fuentes_pm():
+        try:
+            import shutil as _sh, subprocess as _sp
+            _base = _os_pm.path.dirname(_os_pm.path.abspath(__file__))
+            _dest = _os_pm.path.expanduser("~/.local/share/fonts")
+            _os_pm.makedirs(_dest, exist_ok=True)
+            for _f in ("Lora-Regular.ttf", "Roboto-Regular.ttf", "Roboto-Bold.ttf"):
+                _src = _os_pm.path.join(_base, "fonts", _f)
+                if _os_pm.path.exists(_src):
+                    _sh.copyfile(_src, _os_pm.path.join(_dest, _f))
+                else:
+                    try:
+                        import base64 as _b64m
+                        from fuentes_embebidas import FUENTES_B64 as _FB
+                        with open(_os_pm.path.join(_dest, _f), "wb") as _fh:
+                            _fh.write(_b64m.b64decode("".join(_FB[_f])))
+                    except Exception:
+                        pass
+            _sp.run(["fc-cache", "-f"], capture_output=True, timeout=60)
+        except Exception:
+            pass
+    def generar_pdf_prueba(datos):
+        import tempfile as _tf
+        _instalar_fuentes_pm()
+        datos_formato = {
+            "fecha": datos.get("fecha", ""),
+            "responsable": datos.get("responsable", ""),
+            "planta": datos.get("planta", ""),
+            "periodicidad": datos.get("periodicidad", ""),
+            "prueba": datos.get("prueba", ""),
+            "codigo": datos.get("codigo", ""),
+            "clave": datos.get("clave", ""),
+            "cantidad": datos.get("cantidad", ""),
+            "caracteristica": datos.get("caracteristica", ""),
+            "especificacion": datos.get("especificacion", ""),
+            "m1": (datos.get("valores") or ["", "", ""])[0],
+            "m2": (datos.get("valores") or ["", "", ""])[1],
+            "m3": (datos.get("valores") or ["", "", ""])[2],
+            "resultado": datos.get("resultado", ""),
+            "conforme": bool(datos.get("conforme", True)),
+            "observaciones": datos.get("observaciones", ""),
+        }
+        salida = _tf.mkdtemp(prefix="pm_salida_")
+        _xlsx, ruta_pdf, _n = _generar_formato_plantilla(
+            datos_formato, _PLANTILLA_PM, list(datos.get("fotos") or []), carpeta_salida=salida)
+        with open(ruta_pdf, "rb") as f:
+            return f.read()
 except Exception:
     PRUEBAS_MENSUALES = []
     generar_pdf_prueba = None
@@ -88,24 +137,73 @@ def foto_a_base64(archivo):
 
 def fotos_de(archivos, punto):
     """Convierte uno o varios archivos subidos a la lista de fotos de un punto."""
+    out, _fallidas = fotos_de_detalle(archivos, punto)
+    return out
+
+def fotos_de_detalle(archivos, punto):
+    """Como fotos_de, pero además devuelve los nombres de archivos que no se pudieron procesar."""
     if not archivos:
-        return []
+        return [], []
     if not isinstance(archivos, list):
         archivos = [archivos]
     out = []
+    fallidas = []
     for a in archivos:
         f = foto_a_base64(a)
         if f:
             f["punto"] = punto
             out.append(f)
-    return out
+        else:
+            fallidas.append(getattr(a, "name", "foto sin nombre"))
+    return out, fallidas
 
 def enviar_fotos_entrega(datos):
+    # Un solo POST por entrega (el webhook registra la entrega completa).
+    # Verifica la respuesta del servidor: si no confirma, reintenta una vez
+    # y deja registro del fallo en fotos_fallidas.log (antes el fallo era
+    # silencioso y la entrega con sus fotos se perdía sin avisar).
+    # El servidor es idempotente por fecha|hora|nombre: un reintento tras
+    # una respuesta perdida responde duplicado:true y cuenta como éxito.
+    if not FOTOS_WEBHOOK_URL or FOTOS_WEBHOOK_URL == "TU_URL_DEL_SCRIPT_DE_FOTOS":
+        return {"ok": False, "error": "sin_url"}
+    n_fotos = len(datos.get("fotos") or [])
+    ultimo_error = None
+    for intento in range(2):
+        try:
+            resp = requests.post(FOTOS_WEBHOOK_URL, json=datos, timeout=120)
+            try:
+                cuerpo = resp.json()
+            except Exception:
+                cuerpo = {}
+            if resp.status_code == 200 and cuerpo.get("ok"):
+                if cuerpo.get("duplicado"):
+                    return {"ok": True, "duplicado": True, "fotos_guardadas": n_fotos}
+                guardadas = cuerpo.get("fotos_guardadas", n_fotos)
+                if guardadas == n_fotos:
+                    if cuerpo.get("errores"):
+                        print(f"enviar_fotos_entrega: fotos con error: {cuerpo.get('errores')}")
+                    return {"ok": True, "fotos_guardadas": guardadas}
+                ultimo_error = f"fotos_guardadas={guardadas} de {n_fotos}"
+            else:
+                ultimo_error = f"HTTP {resp.status_code}: {str(cuerpo)[:200]}"
+        except Exception as e:
+            ultimo_error = str(e)
+        if intento == 0:
+            import time as _time
+            _time.sleep(2)
     try:
-        if FOTOS_WEBHOOK_URL and FOTOS_WEBHOOK_URL != "TU_URL_DEL_SCRIPT_DE_FOTOS":
-            requests.post(FOTOS_WEBHOOK_URL, json=datos, timeout=30)
+        import os as _os
+        _ruta = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "fotos_fallidas.log")
+        with open(_ruta, "a", encoding="utf-8") as _fh:
+            _fh.write(
+                f"{ahora_local().isoformat()} entrega {datos.get('fecha')} "
+                f"{datos.get('hora')} {datos.get('nombre')} fotos={n_fotos} "
+                f"error={ultimo_error}\n"
+            )
     except Exception:
         pass
+    print(f"enviar_fotos_entrega: falló tras reintento: {ultimo_error}")
+    return {"ok": False, "error": ultimo_error}
 
 # --- Registro de Rafia en la base: cada medición se guarda en la hoja "Rafia" ---
 # El webhook (Apps Script "Rafia base de datos") registra la medición en la hoja
@@ -825,14 +923,13 @@ with tab_entrega_turno:
     st.divider()
 
     # ── 8. MASTERS EN BUEN ESTADO ────────────────────────────
-    st.markdown("**8. Masters en buen estado \\*** *(Semanal, APLICA SOLO 2T)*")
+    # Semanal (aplica solo 2T): no es obligatoria
+    st.markdown("**8. Masters en buen estado** *(Semanal, APLICA SOLO 2T)*")
     masters = st.radio(
         "Estado de masters",
         ["OK", "NOK", "Otras"],
         horizontal=True, index=None, key="et_masters"
     )
-    if not masters:
-        errores.append("8. Masters en buen estado")
     masters_obs = ""
     if masters == "Otras":
         masters_obs = st.text_input("Especifique el estado de los masters", key="et_masters_obs")
@@ -906,17 +1003,29 @@ with tab_entrega_turno:
                 "instrumentos_inspector_1": f"{inspectores_data['Inspector 1']['estado']} - {inspectores_data['Inspector 1']['observaciones']}",
                 "instrumentos_inspector_2": f"{inspectores_data['Inspector 2']['estado']} - {inspectores_data['Inspector 2']['observaciones']}",
                 "instrumentos_inspector_3": f"{inspectores_data['Inspector 3']['estado']} - {inspectores_data['Inspector 3']['observaciones']}",
-                "masters": masters if masters != "Otras" else f"Otras: {masters_obs}",
+                "masters": (masters if masters != "Otras" else f"Otras: {masters_obs}") if masters else "No aplica",
                 "tarimas": tarimas,
                 "observaciones": observaciones
             }
             threading.Thread(target=enviar_app_google_sheets, args=(datos_cuestionario,)).start()
             fotos = []
+            fotos_fallidas = []
             archivo_insp_entrega = inspectores_data.get(inspector_entrega, {}).get("archivo") if inspector_entrega else None
-            fotos += fotos_de(archivo_insp_entrega, "6. Instrumentos " + str(inspector_entrega))
-            fotos += fotos_de(archivo_instrumentos, "7. Archivo de instrumentos")
-            fotos += fotos_de(archivo_5s, "10. Seguimiento 5's")
-            fotos += fotos_de(archivo_cuarentena, "11. Área de cuarentena")
+            for _archivos, _punto in [
+                (archivo_insp_entrega, "6. Instrumentos " + str(inspector_entrega)),
+                (archivo_instrumentos, "7. Archivo de instrumentos"),
+                (archivo_5s, "10. Seguimiento 5's"),
+                (archivo_cuarentena, "11. Área de cuarentena"),
+            ]:
+                _ok, _fall = fotos_de_detalle(_archivos, _punto)
+                fotos += _ok
+                fotos_fallidas += _fall
+            if fotos_fallidas:
+                st.warning(
+                    "⚠️ No se pudieron cargar estas fotos (formato no compatible): "
+                    + ", ".join(fotos_fallidas)
+                    + ". Intenta con fotos JPG o PNG."
+                )
             if fotos:
                 datos_fotos = dict(datos_cuestionario)
                 datos_fotos["inspector_entrega"] = inspector_entrega
@@ -932,7 +1041,7 @@ with tab_pruebas:
     st.markdown("Selecciona el código y todo se llena solo. Solo confirma tu nombre, los resultados y sube las fotos de evidencia para descargar el formato en PDF.")
 
     if not PRUEBAS_MENSUALES or generar_pdf_prueba is None:
-        st.error("⚠️ No se pudo cargar el catálogo de pruebas o el generador PDF. Revisa que los archivos catalogo_pruebas.py y pdf_pruebas.py estén en el repositorio.")
+        st.error("⚠️ No se pudo cargar el catálogo de pruebas o el generador PDF. Revisa que los archivos catalogo_pruebas.py y generar_formato.py estén en el repositorio (y que LibreOffice esté instalado).")
     else:
         # Inspectores actuales (lista enviada por Juan el 2026-11-20)
         INSPECTORES_PM = [
